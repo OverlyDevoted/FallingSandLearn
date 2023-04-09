@@ -7,7 +7,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "src/stb_image.h"
+#include "src/vendor/stb_image.h"
 class Texture
 {
 public:

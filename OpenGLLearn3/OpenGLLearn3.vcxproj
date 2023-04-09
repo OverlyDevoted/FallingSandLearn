@@ -96,6 +96,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)\OpenGLLearn3\src\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -111,6 +112,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)\OpenGLLearn3\src\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,6 +128,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)\OpenGLLearn3\src\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,6 +144,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)\OpenGLLearn3\src\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,11 +157,27 @@
   <ItemGroup>
     <ClCompile Include="OpenGLLearn3.cpp" />
     <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="src\glad.c" />
+    <ClCompile Include="src\vendor\glad.c" />
+    <ClCompile Include="src\vendor\imgui\imgui.cpp" />
+    <ClCompile Include="src\vendor\imgui\imgui_demo.cpp" />
+    <ClCompile Include="src\vendor\imgui\imgui_draw.cpp" />
+    <ClCompile Include="src\vendor\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="src\vendor\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="src\vendor\imgui\imgui_tables.cpp" />
+    <ClCompile Include="src\vendor\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="src\vendor\imgui\imconfig.h" />
+    <ClInclude Include="src\vendor\imgui\imgui.h" />
+    <ClInclude Include="src\vendor\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="src\vendor\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="src\vendor\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="src\vendor\imgui\imgui_internal.h" />
+    <ClInclude Include="src\vendor\imgui\imstb_rectpack.h" />
+    <ClInclude Include="src\vendor\imgui\imstb_textedit.h" />
+    <ClInclude Include="src\vendor\imgui\imstb_truetype.h" />
     <ClInclude Include="Texture.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

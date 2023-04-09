@@ -2,6 +2,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -16,7 +19,10 @@ public:
 	std::string readFromFile(std::string fileName);
 	
 	void use();
-	void setUniform4v(std::string locationName, float values[]);
+
+	void setUniform4f(std::string locationName, float values[]);
+	void setUniform4m(std::string locationName, glm::mat4 value);
+	void setUniform1f(std::string locationName, float value);
 private: 
 	
 };

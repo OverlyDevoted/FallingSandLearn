@@ -72,7 +72,21 @@ void Shader::use()
     glUseProgram(ID);
 }
 
-void Shader::setUniform4v(std::string locationName, float* values)
+void Shader::setUniform4m(std::string locationName, glm::mat4 value)
+{
+    int location = glGetUniformLocation(ID, locationName.c_str());
+
+    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
+}
+
+void Shader::setUniform1f(std::string locationName, float value)
+{
+    int vertexColorLocation = glGetUniformLocation(ID, locationName.c_str());
+
+    glUniform1f(vertexColorLocation, value);
+}
+
+void Shader::setUniform4f(std::string locationName, float* values)
 {
     //needs checking
     int vertexColorLocation = glGetUniformLocation(ID, locationName.c_str());
