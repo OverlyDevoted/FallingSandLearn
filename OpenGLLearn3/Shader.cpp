@@ -93,3 +93,10 @@ void Shader::setUniform4f(std::string locationName, float* values)
 
     glUniform4f(vertexColorLocation, values[0], values[1], values[2], values[3]);
 }
+void Shader::setUniform3f(std::string locationName, float* values)
+{
+    //needs checking
+    int vertexColorLocation = glGetUniformLocation(ID, locationName.c_str());
+
+    glUniform4f(vertexColorLocation, values[0], values[1], values[2], values[3]);
+}
