@@ -24,6 +24,7 @@
 #include "Shader.h"
 #include "Texture.h"
 #include "MeshGeometry.h"
+#include "FallingSandHelper.h"
 
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -34,16 +35,13 @@ float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 re
 float pitch = 0.0f;
 float lastX = 800.0f / 2.0f;
 float lastY = 600.0f / 2.0f;
-
+float moveSpeed = 2.5f;
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window);
-
-unsigned int VAO[2], VBO[2], EBO[2];
-float* mix = new float(0.5f);
 
 void createTriangle(unsigned int& VAO, unsigned int& VBO, unsigned int& EBO, float* vertices)
 {
@@ -117,31 +115,11 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
 
-    //triangle vertices
-    float vertices[] = {
-        // positions         // colors           //texture coords
-        -0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f,
-        -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   0.0f, 0.0f,
-         0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,
-         0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 1.0f,   1.0f, 1.0f
-    };
-    Texture texture1 = Texture("src/res/textures/container.jpg", GL_RGB, false);
-    Texture texture2 = Texture("src/res/textures/Okay.png", GL_RGBA, true);
-    //vao and vbo for a triangle setup
-    //createTriangle(VAO[0], VBO[0], EBO[0], vertices);
-    //createCube(VAO[1], VBO[1]);
-
-
     //shader program object setup
     Shader shader = Shader("src/res/shaders/fallingSandVertex.glsl", "src/res/shaders/fallingSandFrag.glsl");
 
-    shader.use();
-    glUniform1i(glGetUniformLocation(shader.ID, "texture1"), 0);
-    glUniform1i(glGetUniformLocation(shader.ID, "texture2"), 1);
-
     MeshGeometry geometry = MeshGeometry();
-    
-    //projection = glm::rotate(projection, glm::radians(15.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    FallingSandHelper sand = FallingSandHelper();
     glm::vec3 cubePositions[] = {
         glm::vec3(0.0f,  0.0f,  0.0f),
         glm::vec3(2.0f,  5.0f, -15.0f),
@@ -154,10 +132,9 @@ int main()
         glm::vec3(1.5f,  0.2f, -1.5f),
         glm::vec3(-1.3f,  1.0f, -1.5f)
     };
-
+#pragma region IMGUI
     //IMGUI setup
     // Setup Dear ImGui context
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -175,6 +152,9 @@ int main()
     bool show_demo_window = true;
     bool show_another_window = true;
     float position[] = { 0.0f,0.0f,3.0f };
+#pragma endregion
+
+    
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
@@ -202,38 +182,42 @@ int main()
         //set uniform for the first shader
         //get uniform location in the shader program getting the location does not require for the program to be used 
 
-        texture1.use(GL_TEXTURE0);
-        texture2.use(GL_TEXTURE1);
+        
         //first triangle
         shader.use();
         //set the value based on location. To set the value the program has to be in use hence glUseProgram is called first
         
-        geometry.bindCube();
+        geometry.bindRectangle();
 
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projection;
-        projection = glm::perspective(glm::radians(50.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+        projection = glm::perspective(glm::radians(50.0f), 800.0f / 600.0f, 0.1f, 1000.0f);
 
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(cubePositions[5]));
         
         shader.setUniform4m("projection", projection);
         shader.setUniform4m("view", view);
-        shader.setUniform4m("model", model);
-        
-        float color[] = { 0.902f, 0.831f, 0.0f, 1.0f};
+        float color[] = { 0.902f, 0.831f, 0.0f, 1.0f };
         shader.setUniform4f("color", color);
+
+        sand.IterateSpace([&cubePositions, &shader, &geometry](int x, int y) {
+                //we can have model matrix be calculated once in exchange for memory
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3((float)x,(float)y, 0.0f));
+                model = glm::scale(model, glm::vec3(0.5f, 0.5f, 1.0f));
+                shader.setUniform4m("model", model);
+
+                geometry.drawRectangle();
+            }
+        );
+
         
-        geometry.drawCube();
-
-        /*//for rendering sand
-        for (int i = 0; i < 10; i++)
-        {
-            
-        }*/
-
+        
+        
         //for controlling simulation settings
-        ImGui::Begin("Simulatioin control");
+        ImGui::Begin("Simulation control");
+        ImGui::SliderFloat("Mov speed", &moveSpeed, 0.0f, 20.0f);
+        ImGui::Text("Camera pos:");
+        ImGui::Text("x:%f y:%f z:%f",cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -252,9 +236,6 @@ int main()
     ImGui::DestroyContext();
 
     //good practice is to delete your vao, vbo and shader programs
-    glDeleteBuffers(2, VAO);
-    glDeleteBuffers(2, VBO);
-
 
     glfwDestroyWindow(window);
     //terminate glfw session
@@ -272,7 +253,7 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
     
-    float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
+    float cameraSpeed = moveSpeed * deltaTime; // adjust accordingly
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -285,7 +266,7 @@ void processInput(GLFWwindow* window)
         cameraPos -= cameraSpeed * cameraUp;
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraUp;
-    /*
+    
     if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS)
     {
         if(glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
@@ -293,23 +274,12 @@ void processInput(GLFWwindow* window)
         else
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
-    */
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-    {
-        if (*mix <= 1.0f)
-            *mix += 0.0025f;
-        printf("%f", *mix);
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    {
-        if (*mix > 0.0f)
-            *mix -= 0.0025f;
-        printf("%f", *mix);
-    }
-
+    
 }
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+    if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL)
+        return;
     if (firstMouse)
     {
         lastX = xpos;

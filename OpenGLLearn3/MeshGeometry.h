@@ -10,7 +10,8 @@ public:
 	MeshGeometry();
 	~MeshGeometry();
 	void drawRectangle();
-	void drawCube();
+	void bindRectangle();
+
 	void bindCube();
 	void drawCubeManual();
 
@@ -18,6 +19,9 @@ private:
 	unsigned int cubeVao;
 	unsigned int cubeVbo;
 	unsigned int cubeEbo;
+	unsigned int rectangleVao;
+	unsigned int rectangleVbo;
+	unsigned int rectangleEbo;
 
 	void createRectangle();
 	void createCube();

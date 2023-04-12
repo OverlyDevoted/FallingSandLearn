@@ -9,31 +9,54 @@ MeshGeometry::~MeshGeometry()
 {
 	glDeleteBuffers(1, &cubeVao);
 	glDeleteBuffers(1, &cubeVbo);
+	glDeleteBuffers(1, &cubeEbo);
+	glDeleteBuffers(1, &rectangleVao);
+	glDeleteBuffers(1, &rectangleVbo);
+	glDeleteBuffers(1, &rectangleEbo);
+	
 }
 
 void MeshGeometry::drawRectangle()
 {
+	glDrawElements(GL_TRIANGLES, 8, GL_UNSIGNED_INT, 0);
 }
 
-void MeshGeometry::drawCube()
+void MeshGeometry::bindRectangle()
 {
-	glBindVertexArray(cubeVao);
-	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(rectangleVao);
 }
 
-void MeshGeometry::bindCube()
-{
-	glBindVertexArray(cubeVao);
-}
-
-void MeshGeometry::drawCubeManual()
-{
-
-	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-}
 
 void MeshGeometry::createRectangle()
 {
+	unsigned int rectangle_elements[] = {
+		// front
+		0, 1, 2,
+		2, 3, 0,
+	};
+	float rectangle_vertices[] = {
+		// front
+		-1.0, -1.0,  1.0,
+		 1.0, -1.0,  1.0,
+		 1.0,  1.0,  1.0,
+		-1.0,  1.0,  1.0,
+	};
+	glGenVertexArrays(1, &cubeVao);
+	glGenBuffers(1, &cubeVbo);
+	glGenBuffers(1, &cubeEbo);
+
+	glBindVertexArray(cubeVao);
+
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(rectangle_vertices), rectangle_vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEbo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_elements), rectangle_elements, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void MeshGeometry::createCube()
@@ -89,3 +112,13 @@ void MeshGeometry::createCube()
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
+void MeshGeometry::drawCubeManual()
+{
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+}
+
+void MeshGeometry::bindCube()
+{
+	glBindVertexArray(cubeVao);
+}
+
