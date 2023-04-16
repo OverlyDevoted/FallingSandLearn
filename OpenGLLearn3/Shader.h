@@ -24,6 +24,7 @@ public:
 	void setUniform4m(std::string locationName, glm::mat4 value);
 	void setUniform1f(std::string locationName, float value);
 	void setUniform3f(std::string locationName, float* values);
+	void setUniform3f(std::string locationName, glm::vec3 values);
 private: 
 	
 };

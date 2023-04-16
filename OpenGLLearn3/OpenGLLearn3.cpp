@@ -19,28 +19,34 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-
+#include <cmath>
 //my headers
 #include "Shader.h"
 #include "Texture.h"
 #include "MeshGeometry.h"
 #include "FallingSandHelper.h"
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+const int WIDTH = 800, HEIGTH = 800;
+int simulationWidth = WIDTH, simulationHeigth = HEIGTH;
 
 bool firstMouse = true;
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch = 0.0f;
-float lastX = 800.0f / 2.0f;
-float lastY = 600.0f / 2.0f;
+float lastX = WIDTH / 2.0f; 
+float lastY = HEIGTH / 2.0f;
+float currentX = WIDTH / 2.0f;
+float currentY = HEIGTH / 2.0f;
 float moveSpeed = 2.5f;
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
+glm::vec3 cameraPos = glm::vec3(-.5f, -.5f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_click_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 
 void createTriangle(unsigned int& VAO, unsigned int& VBO, unsigned int& EBO, float* vertices)
@@ -80,7 +86,6 @@ void createTriangle(unsigned int& VAO, unsigned int& VBO, unsigned int& EBO, flo
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-const int WIDTH = 800, HEIGTH = 600;
 int main()
 {
     glfwInit();
@@ -105,21 +110,33 @@ int main()
     }
 
     //for hiding cursor
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     glEnable(GL_DEPTH_TEST);
     //setting the viewport dimensions. in this case opengl will take the whole viewport if we made it to look smaller the normalized device coordinates would be transformed to fit into 
     //specified witdh and heigth
     glViewport(0, 0, WIDTH, HEIGTH);
-    //registering resize callback 
+    //registering callbacks
+    //resize
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    //cursor position
     glfwSetCursorPosCallback(window, mouse_callback);
+    //mouse clicks
+    glfwSetMouseButtonCallback(window, mouse_click_callback);
 
     //shader program object setup
     Shader shader = Shader("src/res/shaders/fallingSandVertex.glsl", "src/res/shaders/fallingSandFrag.glsl");
 
     MeshGeometry geometry = MeshGeometry();
     FallingSandHelper sand = FallingSandHelper();
+    sand.Initialize2DSpace(10, 10);
+    
+    glm::vec3 supposedCamPos = sand.GetSpaceSize();
+    simulationWidth = supposedCamPos.x;
+    simulationHeigth = supposedCamPos.y;
+    cameraPos.y -= supposedCamPos.y-1;
+    const unsigned int starting_cell = sand.GetStartingCells();
+    std::cout << starting_cell << std::endl;
     glm::vec3 cubePositions[] = {
         glm::vec3(0.0f,  0.0f,  0.0f),
         glm::vec3(2.0f,  5.0f, -15.0f),
@@ -154,23 +171,24 @@ int main()
     float position[] = { 0.0f,0.0f,3.0f };
 #pragma endregion
 
+    float* fps = new float(0.0f);
     
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
         //update time
-
         float currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-        //std::cout << glfwGetTime() << std::endl; // gets time
+        *fps = 1.0f / deltaTime;
 
+        
 
         //check inputs
         processInput(window);
 
         //draw
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -178,7 +196,7 @@ int main()
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
         //set uniform for the first shader
         //get uniform location in the shader program getting the location does not require for the program to be used 
 
@@ -190,27 +208,36 @@ int main()
         geometry.bindRectangle();
 
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        
         glm::mat4 projection;
-        projection = glm::perspective(glm::radians(50.0f), 800.0f / 600.0f, 0.1f, 1000.0f);
-
+        //projection = glm::perspective(glm::radians(50.0f), (float)(WIDTH / HEIGTH), 0.1f, 1000.0f);
+        projection = glm::ortho(0.0f, supposedCamPos.x, 0.0f, supposedCamPos.y, 0.1f, 1000.0f);
         
         shader.setUniform4m("projection", projection);
         shader.setUniform4m("view", view);
-        float color[] = { 0.902f, 0.831f, 0.0f, 1.0f };
-        shader.setUniform4f("color", color);
+        
+        sand.IterateSpace([&cubePositions, &shader, &geometry](int x, int y, unsigned char value) {
+                
+                if (value == 1)
+                    return;
+                glm::vec3 color = glm::vec3();
 
-        sand.IterateSpace([&cubePositions, &shader, &geometry](int x, int y) {
+                if (value == 2)
+                    color = glm::vec3(1.0f, 1.0f, 0.0f);
+                else
+                    color = glm::vec3(0.0f, 0.0f, 1.0f);
+
+                shader.setUniform3f("color", color);
+
                 //we can have model matrix be calculated once in exchange for memory
+                
                 glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3((float)x,(float)y, 0.0f));
-                model = glm::scale(model, glm::vec3(0.5f, 0.5f, 1.0f));
+                model = glm::translate(model, glm::vec3((float)x,-(float)y, 0.0f));
+                model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));
                 shader.setUniform4m("model", model);
-
                 geometry.drawRectangle();
             }
         );
-
-        
         
         
         //for controlling simulation settings
@@ -218,6 +245,11 @@ int main()
         ImGui::SliderFloat("Mov speed", &moveSpeed, 0.0f, 20.0f);
         ImGui::Text("Camera pos:");
         ImGui::Text("x:%f y:%f z:%f",cameraPos.x, cameraPos.y, cameraPos.z);
+        ImGui::Text("FPS:");
+        ImGui::Text("%f", *fps);
+        ImGui::Text("Starting cell count:");
+        ImGui::Text("%d", starting_cell);
+
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -227,6 +259,7 @@ int main()
         glfwSwapBuffers(window);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         //checks if any event have been triggered (i/o inputs)
         glfwPollEvents();
     }
@@ -240,6 +273,8 @@ int main()
     glfwDestroyWindow(window);
     //terminate glfw session
     glfwTerminate();
+
+    delete fps;
     return 0;
 }
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -278,6 +313,9 @@ void processInput(GLFWwindow* window)
 }
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+    currentX = xpos;
+    currentY = ypos;
+
     if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL)
         return;
     if (firstMouse)
@@ -291,7 +329,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     float yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
-
     float sensitivity = 0.1f;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
@@ -311,3 +348,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     cameraFront = glm::normalize(direction);
 }
 
+void mouse_click_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        glm::vec3 pos = glm::vec3((currentX / WIDTH) * simulationWidth , (currentY / HEIGTH) * simulationHeigth,0.5f);
+        //flipped because that's how cells are stored in the array
+        std::cout << std::floor(pos.y)<< " " << std::floor(pos.x) << std::endl;
+    }
+}
