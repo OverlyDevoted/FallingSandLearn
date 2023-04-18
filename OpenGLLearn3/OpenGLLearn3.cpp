@@ -129,7 +129,7 @@ int main()
 
     MeshGeometry geometry = MeshGeometry();
     FallingSandHelper sand = FallingSandHelper();
-    sand.Initialize2DSpace(10, 10);
+    sand.InitializeSpace(10, 10);
     
     glm::vec3 supposedCamPos = sand.GetSpaceSize();
     simulationWidth = supposedCamPos.x;
@@ -238,7 +238,6 @@ int main()
                 geometry.drawRectangle();
             }
         );
-        
         
         //for controlling simulation settings
         ImGui::Begin("Simulation control");

@@ -2,7 +2,7 @@
 
 FallingSandHelper::FallingSandHelper()
 {
-    AllocateEmpty2DSpace(rows, cols);
+    AllocateEmptySpace(rows, cols);
 }
 
 FallingSandHelper::~FallingSandHelper()
@@ -10,7 +10,7 @@ FallingSandHelper::~FallingSandHelper()
     Deallocate2DSpace();
 }
 
-void FallingSandHelper::Initialize2DSpace(const unsigned int& new_row, const unsigned int& new_col)
+void FallingSandHelper::InitializeSpace(const unsigned int& new_row, const unsigned int& new_col)
 {
     if (new_col < min_col || new_row < min_row)
     {
@@ -18,7 +18,7 @@ void FallingSandHelper::Initialize2DSpace(const unsigned int& new_row, const uns
         return;
     }
     Deallocate2DSpace();
-    AllocateEmpty2DSpace(new_row, new_col);
+    AllocateEmptySpace(new_row, new_col);
 }
 
 void FallingSandHelper::IterateSpace(std::function<void(int, int, unsigned char)> renderFunction)
@@ -29,27 +29,21 @@ void FallingSandHelper::IterateSpace(std::function<void(int, int, unsigned char)
             //render
             renderFunction(j, i, cell);
             unsigned char tempVal = GetNeighboarhood(j, i, cell);
-            //calculate each cell
-            
+            //gather changes
             switch (tempVal)
             {
                 case _BOT_MID:
-                    spaceB[i][j] = _EMPTY;
-                    spaceB[i + 1][j] = cell;
+                    MakeChange(glm::uvec2(j, i), glm::uvec2(j, i + 1));
                     break;
                 case _BOT_LEFT:
-                    spaceB[i][j] = _EMPTY;
-                    spaceB[i + 1][j - 1] = cell;
+                    MakeChange(glm::uvec2(j, i), glm::uvec2(j - 1, i + 1));
                     break;
                 case _BOT_RIGHT:
-                    spaceB[i][j] = _EMPTY;
-                    spaceB[i + 1][j + 1] = cell;
+                    MakeChange(glm::uvec2(j, i), glm::uvec2(j + 1, i + 1));
                     break;
                 default:
-                    spaceB[i][j] = cell;
                     break;
             }
-            
         }
     }
     //we need a good swap function cuz this was aint it brother
@@ -93,13 +87,11 @@ void FallingSandHelper::Deallocate2DSpace()
 {
     for (int i = 0; i < rows; i++) {
         delete[]space[i];
-        delete[]spaceB[i];
     }
     delete[] space;
-    delete[] spaceB;
 }
 
-void FallingSandHelper::AllocateEmpty2DSpace(const int& new_row, const int& new_col)
+void FallingSandHelper::AllocateEmptySpace(const int& new_row, const int& new_col)
 {
     starting_cells = 0;
     // set the random seed
@@ -108,27 +100,47 @@ void FallingSandHelper::AllocateEmpty2DSpace(const int& new_row, const int& new_
     rows = new_row;
     cols = new_col;
     space = new unsigned char* [rows];
-    spaceB = new unsigned char* [rows];
     std::cout << "Generating " << rows * cols << " number of cells." << std::endl;
     for (int i = 0; i < rows; i++) {
         space[i] = new unsigned char[cols];
-        spaceB[i] = new unsigned char[cols];
         for (int j = 0; j < cols; j++) {
             unsigned char cell = std::rand() % 2 + 1;
             if (cell == _SAND)
                 starting_cells++;
   
             space[i][j] = cell;
-            spaceB[i][j] = space[i][j];
         }
     }
 }
 
-void FallingSandHelper::SwapArrays(unsigned char**& to, unsigned char**& from)
+
+void FallingSandHelper::MakeChange(const glm::uvec2& from, const glm::uvec2& to)
 {
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            space[i][j] = spaceB[i][j];
+    space_changes.emplace_back(to, from);
+}
+
+void FallingSandHelper::CommitChanges()
+{
+    size_t change_count = space_changes.size();
+    for (size_t i = 0; i < change_count; i++)
+    {
+        if (GetCellAt(space_changes.at(i).first) != _EMPTY)
+        {
+            space_changes[i] = space_changes.back(); 
+            space_changes.pop_back();
+            i--;
         }
     }
+
+    std::cout << "Changes" << std::endl;
+    for (size_t i = 0; i < change_count; i++)
+    {
+        std::cout << "x: " << space_changes.at(i).first.x << "y: " << space_changes.at(i).first.y << " x: " << space_changes.at(i).second.x << "y: " << space_changes.at(i).second.y << std::endl;
+    }
+    space_changes.clear();
+}
+
+unsigned int FallingSandHelper::GetCellAt(const glm::uvec2& pos)
+{
+    return space[pos.x][pos.y];
 }
