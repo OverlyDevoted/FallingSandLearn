@@ -26,6 +26,7 @@ void FallingSandHelper::IterateSpace(std::function<void(int, int, unsigned char)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             unsigned char cell = space[i][j];
+            std::cout << (int)cell << " ";
             //render
             renderFunction(j, i, cell);
             unsigned char tempVal = GetNeighboarhood(j, i, cell);
@@ -44,9 +45,13 @@ void FallingSandHelper::IterateSpace(std::function<void(int, int, unsigned char)
                 default:
                     break;
             }
+
         }
+        std::cout << std::endl;
     }
-    //we need a good swap function cuz this was aint it brother
+    std::cout << "------------------------------------------------" << std::endl;
+    //commit changes
+    CommitChanges();
 }
 
 glm::vec3 FallingSandHelper::GetSpaceSize() const
@@ -128,15 +133,23 @@ void FallingSandHelper::CommitChanges()
         {
             space_changes[i] = space_changes.back(); 
             space_changes.pop_back();
+            change_count = space_changes.size();
             i--;
         }
     }
-
-    std::cout << "Changes" << std::endl;
+    unsigned int temp_rows = rows;
+    std::sort(space_changes.begin(), space_changes.end(), [&temp_rows](std::pair<glm::uvec2, glm::uvec2>& a, std::pair<glm::uvec2, glm::uvec2>& b) {return (a.first.x + (a.first.y * temp_rows)) < (b.first.x + (b.first.y * temp_rows)); });
     for (size_t i = 0; i < change_count; i++)
     {
-        std::cout << "x: " << space_changes.at(i).first.x << "y: " << space_changes.at(i).first.y << " x: " << space_changes.at(i).second.x << "y: " << space_changes.at(i).second.y << std::endl;
+        glm::uvec2 dst = space_changes[i].first;
+        glm::uvec2 src = space_changes[i].second;
+        
+        space[dst.y][dst.x] = space[src.y][src.x];
+        space[src.y][src.x] = space[dst.y][dst.x];
+        std::cout << "x: " << space_changes.at(i).first.x << " y: " << space_changes.at(i).first.y << " x: " << space_changes.at(i).second.x << " y: " << space_changes.at(i).second.y << std::endl;
+
     }
+
     space_changes.clear();
 }
 

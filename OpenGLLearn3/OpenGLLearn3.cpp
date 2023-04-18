@@ -238,7 +238,6 @@ int main()
                 geometry.drawRectangle();
             }
         );
-        
         //for controlling simulation settings
         ImGui::Begin("Simulation control");
         ImGui::SliderFloat("Mov speed", &moveSpeed, 0.0f, 20.0f);
