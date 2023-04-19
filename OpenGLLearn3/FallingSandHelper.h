@@ -21,7 +21,7 @@ public:
 	//should probably abstract cell
 	unsigned char GetNeighboarhood(const int& x, const int& y);
 	unsigned int GetStartingCells() const;
-	void SetPixel(const int& x, const int& y);
+	void SetPixel(const int& x, const int& y, const unsigned int& type);
 
 private:
 	unsigned int rows = 100, cols = 100;
@@ -34,16 +34,19 @@ private:
 	void MakeChange(const glm::uvec2 &from, const glm::uvec2&to);
 	void CommitChanges();
 	unsigned int GetCellAt(const glm::uvec2& pos);
+	bool IsBounds(const glm::uvec2& pos);
 };
 enum CellType {
 	_VOID = 0,
 	_EMPTY = 1,
-	_SAND = 2,
-	_WATER = 3
+	_WATER = 2,
+	_SAND = 3,
 };
 enum CellMove {
 	_STAY = 0,
 	_BOT_MID = 1,
 	_BOT_LEFT = 2,
-	_BOT_RIGHT = 3
+	_BOT_RIGHT = 3,
+	_MID_LEFT = 4,
+	_MID_RIGHT = 5,
 };

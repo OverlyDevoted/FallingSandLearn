@@ -40,6 +40,12 @@ void FallingSandHelper::IterateSpace()
                 case _BOT_RIGHT:
                     MakeChange(glm::uvec2(j, i), glm::uvec2(j + 1, i + 1));
                     break;
+                case _MID_RIGHT:
+                    MakeChange(glm::uvec2(j, i), glm::uvec2(j + 1, i ));
+                    break;
+                case _MID_LEFT:
+                    MakeChange(glm::uvec2(j, i), glm::uvec2(j - 1, i));
+                    break;
                 default:
                     break;
             }
@@ -72,27 +78,54 @@ unsigned char FallingSandHelper::GetNeighboarhood(const int& x, const int& y)
  
     switch (space[y][x])
     {
-        case _SAND:
-            if (y + 1 < rows)
+    case _SAND:
+    {   
+        if (y + 1 < rows)
+        {
+            if (space[y][x] > space[y + 1][x])
             {
-                if (space[y + 1][x] == _EMPTY)
-                {
-                    return _BOT_MID;
-                }
-                if (x - 1 >= 0 && space[y + 1][x - 1] == _EMPTY)
-                {
-                    return _BOT_LEFT;
-                }
-                if (x + 1 < cols && space[y + 1][x + 1] == _EMPTY)
-                {
-                    return _BOT_RIGHT;
-                }
+                return _BOT_MID;
             }
-            return _STAY;
-            break;
+            if (x - 1 >= 0 && space[y][x] > space[y + 1][x - 1])
+            {
+                return _BOT_LEFT;
+            }
+            if (x + 1 < cols && space[y][x] > space[y + 1][x + 1])
+            {
+                return _BOT_RIGHT;
+            }
+        }
+        return _STAY;
+    }
+    case _WATER:
+    {
+        if (y + 1 < rows)
+        {
+            if (space[y + 1][x] == _EMPTY)
+            {
+                return _BOT_MID;
+            }   
+        }
+        int rand = std::rand() % 2;
+        rand = (rand == 0) ? -1 : 1;
+        if (x - rand >= 0 && space[y][x - rand] == _EMPTY)
+        {
+            if (rand == 1)
+                return _MID_LEFT;
+            
+            return _MID_RIGHT;
+        }
+        if (x + rand < cols && space[y][x + rand] == _EMPTY)
+        {
+            if(rand==1)
+                return _MID_RIGHT;
+            
+            return _MID_LEFT;
+        }
+        return _STAY;
+    }
         default:
             return _STAY;
-            break;
     }
 }
 
@@ -101,9 +134,9 @@ unsigned int FallingSandHelper::GetStartingCells() const
     return starting_cells;
 }
 
-void FallingSandHelper::SetPixel(const int& x, const int& y)
+void FallingSandHelper::SetPixel(const int& x, const int& y, const unsigned int& type)
 {
-    space[y][x] = _SAND;
+    space[y][x] = type;
 }
 
 void FallingSandHelper::Deallocate2DSpace()
@@ -137,7 +170,6 @@ void FallingSandHelper::AllocateEmptySpace(const int& new_row, const int& new_co
     }
 }
 
-
 void FallingSandHelper::MakeChange(const glm::uvec2& from, const glm::uvec2& to)
 {
     space_changes.emplace_back(to, from);
@@ -148,7 +180,7 @@ void FallingSandHelper::CommitChanges()
     size_t change_count = space_changes.size();
     for (size_t i = 0; i < change_count; i++)
     {
-        if (GetCellAt(space_changes.at(i).first) != _EMPTY)
+        if (GetCellAt(space_changes.at(i).first) >= GetCellAt(space_changes.at(i).second))
         {
             space_changes[i] = space_changes.back(); 
             space_changes.pop_back();
@@ -163,10 +195,9 @@ void FallingSandHelper::CommitChanges()
         glm::uvec2 dst = space_changes[i].first;
         glm::uvec2 src = space_changes[i].second;
         
+        int temp = space[dst.y][dst.x];
         space[dst.y][dst.x] = space[src.y][src.x];
-        space[src.y][src.x] = _EMPTY;
-        //std::cout << "to: x: " << space_changes.at(i).first.x << " y: " << space_changes.at(i).first.y << " from: x: " << space_changes.at(i).second.x << " y: " << space_changes.at(i).second.y << std::endl;
-
+        space[src.y][src.x] = temp;
     }
 
     space_changes.clear();
@@ -175,4 +206,9 @@ void FallingSandHelper::CommitChanges()
 unsigned int FallingSandHelper::GetCellAt(const glm::uvec2& pos)
 {
     return space[pos.y][pos.x];
+}
+
+bool FallingSandHelper::IsBounds(const glm::uvec2& pos)
+{
+    return ((pos.y >= 0 && pos.y < rows) && (pos.x >= 0 && pos.x < cols));
 }

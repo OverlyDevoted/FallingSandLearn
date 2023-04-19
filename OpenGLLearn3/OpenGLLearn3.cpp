@@ -31,6 +31,8 @@ int simulationWidth = WIDTH, simulationHeigth = HEIGTH;
 
 bool firstMouse = true;
 bool isLeftMouseHolding = false;
+int sandType = _SAND;
+
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch = 0.0f;
 float lastX = WIDTH / 2.0f; 
@@ -138,7 +140,7 @@ int main()
     glm::vec3 supposedCamPos = sand.GetSpaceSize();
     simulationWidth = supposedCamPos.x;
     simulationHeigth = supposedCamPos.y;
-    cameraPos.y -= supposedCamPos.y-1;
+    cameraPos.y -= supposedCamPos.y - 1;
     const unsigned int starting_cell = sand.GetStartingCells();
 
 #pragma region IMGUI
@@ -165,7 +167,7 @@ int main()
 
     float* fps = new float(0.0f);
     float timer = 0.0f;
-    float iterateWait = 5.0f;
+    float iterateWait = 0.0f;
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
@@ -179,14 +181,13 @@ int main()
         processInput(window);
         if (isLeftMouseHolding)
         {
-            sand.SetPixel(std::floor(mousePos.x), std::floor(mousePos.y));
+            
+            sand.SetPixel(mousePos.x, mousePos.y, sandType);
         }
 
         //draw
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -217,7 +218,7 @@ int main()
                     return;
                 glm::vec3 color = glm::vec3();
 
-                if (value == 2)
+                if (value == 3)
                     color = glm::vec3(1.0f, 1.0f, 0.0f);
                 else
                     color = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -251,7 +252,8 @@ int main()
         ImGui::Text("%d", starting_cell);
         ImGui::SliderFloat("Iteration speed", &iterateWait, 0.0f, 5.0f);
         ImGui::Text("Next iteration:");
-        ImGui::Text("%f %", (timer /iterateWait)*100);
+        ImGui::Text("%f %", iterateWait == 0? 0.0 : (timer / iterateWait) * 100);
+        ImGui::SliderInt("Cell type to place: ", &sandType, 2, 3);
 
         ImGui::End();
         ImGui::Render();
@@ -316,9 +318,11 @@ void processInput(GLFWwindow* window)
 }
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+
     currentX = xpos;
     currentY = ypos;
-    mousePos = glm::vec3((currentX / WIDTH) * simulationWidth, (currentY / HEIGTH) * simulationHeigth, 0.5f);
+    mousePos = glm::vec3(std::abs(std::floor((currentX / WIDTH) * simulationWidth)), std::abs(std::floor((currentY / HEIGTH) * simulationHeigth)), 0.5f);
+    
     if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL)
         return;
     if (firstMouse)
@@ -350,7 +354,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(direction);
 }
-
+//https://github.com/ocornut/imgui/blob/master/docs/FAQ.md#q-how-can-i-tell-whether-to-dispatch-mousekeyboard-to-dear-imgui-or-my-application
 void mouse_click_callback(GLFWwindow* window, int button, int action, int mods)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT)
