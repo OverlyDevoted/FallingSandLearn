@@ -160,8 +160,8 @@ void FallingSandHelper::AllocateEmptySpace(const int& new_row, const int& new_co
     for (int i = 0; i < rows; i++) {
         space[i] = new unsigned char[cols];
         for (int j = 0; j < cols; j++) {
-            //unsigned char cell = std::rand() % 2 + 1;
-            unsigned char cell = _EMPTY;
+            unsigned char cell = std::rand() % 2 + 1;
+            //unsigned char cell = _EMPTY;
             if (cell == _SAND)
                 starting_cells++;
   

@@ -140,7 +140,7 @@ int main()
     glm::vec3 supposedCamPos = sand.GetSpaceSize();
     simulationWidth = supposedCamPos.x;
     simulationHeigth = supposedCamPos.y;
-    cameraPos.y -= supposedCamPos.y - 1;
+   // cameraPos.y -= supposedCamPos.y - 1;
     const unsigned int starting_cell = sand.GetStartingCells();
 
 #pragma region IMGUI
@@ -201,13 +201,13 @@ int main()
         shader.use();
         //set the value based on location. To set the value the program has to be in use hence glUseProgram is called first
         
-        geometry.bindRectangle();
+        geometry.bindCube();
 
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         
         glm::mat4 projection;
-        //projection = glm::perspective(glm::radians(50.0f), (float)(WIDTH / HEIGTH), 0.1f, 1000.0f);
-        projection = glm::ortho(0.0f, supposedCamPos.x, 0.0f, supposedCamPos.y, 0.1f, 1000.0f);
+        projection = glm::perspective(glm::radians(50.0f), (float)(WIDTH / HEIGTH), 0.1f, 1000.0f);
+        //projection = glm::ortho(0.0f, supposedCamPos.x, 0.0f, supposedCamPos.y, 0.1f, 1000.0f);
         
         shader.setUniform4m("projection", projection);
         shader.setUniform4m("view", view);
@@ -229,9 +229,9 @@ int main()
                 
                 glm::mat4 model = glm::mat4(1.0f);
                 model = glm::translate(model, glm::vec3((float)x,-(float)y, 0.0f));
-                model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));
+                model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
                 shader.setUniform4m("model", model);
-                geometry.drawRectangle();
+                geometry.drawCubeManual();
             }
         );
         timer += deltaTime;

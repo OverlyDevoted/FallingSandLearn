@@ -36,6 +36,7 @@ private:
 	unsigned int GetCellAt(const glm::uvec2& pos);
 	bool IsBounds(const glm::uvec2& pos);
 };
+//cells with higher value will replace lower value cells 
 enum CellType {
 	_VOID = 0,
 	_EMPTY = 1,
