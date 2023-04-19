@@ -30,6 +30,7 @@ const int WIDTH = 800, HEIGTH = 800;
 int simulationWidth = WIDTH, simulationHeigth = HEIGTH;
 
 bool firstMouse = true;
+bool isLeftMouseHolding = false;
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch = 0.0f;
 float lastX = WIDTH / 2.0f; 
@@ -43,6 +44,10 @@ float lastFrame = 0.0f;
 glm::vec3 cameraPos = glm::vec3(-.5f, -.5f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+glm::vec3 mousePos;
+
+FallingSandHelper sand = FallingSandHelper();
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -128,27 +133,14 @@ int main()
     Shader shader = Shader("src/res/shaders/fallingSandVertex.glsl", "src/res/shaders/fallingSandFrag.glsl");
 
     MeshGeometry geometry = MeshGeometry();
-    FallingSandHelper sand = FallingSandHelper();
-    sand.InitializeSpace(10, 10);
+    sand.InitializeSpace(50, 50);
     
     glm::vec3 supposedCamPos = sand.GetSpaceSize();
     simulationWidth = supposedCamPos.x;
     simulationHeigth = supposedCamPos.y;
     cameraPos.y -= supposedCamPos.y-1;
     const unsigned int starting_cell = sand.GetStartingCells();
-    std::cout << starting_cell << std::endl;
-    glm::vec3 cubePositions[] = {
-        glm::vec3(0.0f,  0.0f,  0.0f),
-        glm::vec3(2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3(2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f,  3.0f, -7.5f),
-        glm::vec3(1.3f, -2.0f, -2.5f),
-        glm::vec3(1.5f,  2.0f, -2.5f),
-        glm::vec3(1.5f,  0.2f, -1.5f),
-        glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
+
 #pragma region IMGUI
     //IMGUI setup
     // Setup Dear ImGui context
@@ -172,7 +164,8 @@ int main()
 #pragma endregion
 
     float* fps = new float(0.0f);
-    
+    float timer = 0.0f;
+    float iterateWait = 5.0f;
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
@@ -182,10 +175,12 @@ int main()
         lastFrame = currentFrame;
         *fps = 1.0f / deltaTime;
 
-        
-
         //check inputs
         processInput(window);
+        if (isLeftMouseHolding)
+        {
+            sand.SetPixel(std::floor(mousePos.x), std::floor(mousePos.y));
+        }
 
         //draw
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -216,7 +211,7 @@ int main()
         shader.setUniform4m("projection", projection);
         shader.setUniform4m("view", view);
         
-        sand.IterateSpace([&cubePositions, &shader, &geometry](int x, int y, unsigned char value) {
+        sand.IterateThroughSpace([&shader, &geometry](int x, int y, unsigned char value) {
                 
                 if (value == 1)
                     return;
@@ -238,6 +233,13 @@ int main()
                 geometry.drawRectangle();
             }
         );
+        timer += deltaTime;
+        
+        if (timer > iterateWait)
+        {
+            timer = 0.0f;
+            sand.IterateSpace();
+        }
         //for controlling simulation settings
         ImGui::Begin("Simulation control");
         ImGui::SliderFloat("Mov speed", &moveSpeed, 0.0f, 20.0f);
@@ -247,6 +249,9 @@ int main()
         ImGui::Text("%f", *fps);
         ImGui::Text("Starting cell count:");
         ImGui::Text("%d", starting_cell);
+        ImGui::SliderFloat("Iteration speed", &iterateWait, 0.0f, 5.0f);
+        ImGui::Text("Next iteration:");
+        ImGui::Text("%f %", (timer /iterateWait)*100);
 
         ImGui::End();
         ImGui::Render();
@@ -313,7 +318,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     currentX = xpos;
     currentY = ypos;
-
+    mousePos = glm::vec3((currentX / WIDTH) * simulationWidth, (currentY / HEIGTH) * simulationHeigth, 0.5f);
     if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL)
         return;
     if (firstMouse)
@@ -348,10 +353,19 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void mouse_click_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
-        glm::vec3 pos = glm::vec3((currentX / WIDTH) * simulationWidth , (currentY / HEIGTH) * simulationHeigth,0.5f);
-        //flipped because that's how cells are stored in the array
-        std::cout << std::floor(pos.y)<< " " << std::floor(pos.x) << std::endl;
+        if (action == GLFW_PRESS)
+        {
+            //probably could do this in the mouse_callback and here only handle the boolean
+            //flipped because that's how cells are stored in the array
+            //std::cout << std::floor(pos.y) << " " << std::floor(pos.x) << std::endl;
+            isLeftMouseHolding = true;
+        }
+        else if (action == GLFW_RELEASE)
+        {
+            isLeftMouseHolding = false;
+        }
     }
+    
 }

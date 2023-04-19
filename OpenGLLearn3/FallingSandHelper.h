@@ -15,15 +15,17 @@ public:
 	FallingSandHelper();
 	~FallingSandHelper();
 	void InitializeSpace(const unsigned int &new_row, const unsigned int &new_col);
-	void IterateSpace(std::function<void(int, int, unsigned char)> renderFunction);
+	void IterateSpace();
+	void IterateThroughSpace(std::function<void(int, int, unsigned char)> renderFunction);
 	glm::vec3 GetSpaceSize() const;
 	//should probably abstract cell
-	unsigned char GetNeighboarhood(const int& x, const int& y, const char& value);
+	unsigned char GetNeighboarhood(const int& x, const int& y);
 	unsigned int GetStartingCells() const;
+	void SetPixel(const int& x, const int& y);
 
 private:
 	unsigned int rows = 100, cols = 100;
-	unsigned int min_row = 10, min_col = 10;
+	unsigned int min_row = 3, min_col = 3;
 	unsigned int starting_cells = 0;
 	unsigned char** space;
 	std::vector < std::pair<glm::uvec2, glm::uvec2>> space_changes;

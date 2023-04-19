@@ -21,15 +21,13 @@ void FallingSandHelper::InitializeSpace(const unsigned int& new_row, const unsig
     AllocateEmptySpace(new_row, new_col);
 }
 
-void FallingSandHelper::IterateSpace(std::function<void(int, int, unsigned char)> renderFunction)
+void FallingSandHelper::IterateSpace()
 {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             unsigned char cell = space[i][j];
-            std::cout << (int)cell << " ";
-            //render
-            renderFunction(j, i, cell);
-            unsigned char tempVal = GetNeighboarhood(j, i, cell);
+            
+            unsigned char tempVal = GetNeighboarhood(j, i);
             //gather changes
             switch (tempVal)
             {
@@ -47,33 +45,48 @@ void FallingSandHelper::IterateSpace(std::function<void(int, int, unsigned char)
             }
 
         }
-        std::cout << std::endl;
     }
-    std::cout << "------------------------------------------------" << std::endl;
     //commit changes
     CommitChanges();
+}
+
+void FallingSandHelper::IterateThroughSpace(std::function<void(int, int, unsigned char)> renderFunction)
+{
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            unsigned char cell = space[i][j];
+
+            renderFunction(j, i, cell);
+        }
+    }
 }
 
 glm::vec3 FallingSandHelper::GetSpaceSize() const
 {
     return glm::vec3((float)rows, (float)cols, 0.0f);
 }
-unsigned char FallingSandHelper::GetNeighboarhood(const int& x, const int& y, const char& value)
+unsigned char FallingSandHelper::GetNeighboarhood(const int& x, const int& y)
 {
     //#1 optimisation:
     //  - We could also try precalculating and storing neighbor positions in order to just fetch data using instead of always running ifs
  
-    switch (value)
+    switch (space[y][x])
     {
         case _SAND:
             if (y + 1 < rows)
             {
                 if (space[y + 1][x] == _EMPTY)
+                {
                     return _BOT_MID;
+                }
                 if (x - 1 >= 0 && space[y + 1][x - 1] == _EMPTY)
+                {
                     return _BOT_LEFT;
+                }
                 if (x + 1 < cols && space[y + 1][x + 1] == _EMPTY)
+                {
                     return _BOT_RIGHT;
+                }
             }
             return _STAY;
             break;
@@ -86,6 +99,11 @@ unsigned char FallingSandHelper::GetNeighboarhood(const int& x, const int& y, co
 unsigned int FallingSandHelper::GetStartingCells() const
 {
     return starting_cells;
+}
+
+void FallingSandHelper::SetPixel(const int& x, const int& y)
+{
+    space[y][x] = _SAND;
 }
 
 void FallingSandHelper::Deallocate2DSpace()
@@ -109,7 +127,8 @@ void FallingSandHelper::AllocateEmptySpace(const int& new_row, const int& new_co
     for (int i = 0; i < rows; i++) {
         space[i] = new unsigned char[cols];
         for (int j = 0; j < cols; j++) {
-            unsigned char cell = std::rand() % 2 + 1;
+            //unsigned char cell = std::rand() % 2 + 1;
+            unsigned char cell = _EMPTY;
             if (cell == _SAND)
                 starting_cells++;
   
@@ -145,8 +164,8 @@ void FallingSandHelper::CommitChanges()
         glm::uvec2 src = space_changes[i].second;
         
         space[dst.y][dst.x] = space[src.y][src.x];
-        space[src.y][src.x] = space[dst.y][dst.x];
-        std::cout << "x: " << space_changes.at(i).first.x << " y: " << space_changes.at(i).first.y << " x: " << space_changes.at(i).second.x << " y: " << space_changes.at(i).second.y << std::endl;
+        space[src.y][src.x] = _EMPTY;
+        //std::cout << "to: x: " << space_changes.at(i).first.x << " y: " << space_changes.at(i).first.y << " from: x: " << space_changes.at(i).second.x << " y: " << space_changes.at(i).second.y << std::endl;
 
     }
 
@@ -155,5 +174,5 @@ void FallingSandHelper::CommitChanges()
 
 unsigned int FallingSandHelper::GetCellAt(const glm::uvec2& pos)
 {
-    return space[pos.x][pos.y];
+    return space[pos.y][pos.x];
 }
