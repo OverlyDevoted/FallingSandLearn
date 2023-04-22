@@ -22,7 +22,7 @@ private:
 	unsigned int rectangleVao;
 	unsigned int rectangleVbo;
 	unsigned int rectangleEbo;
-
+	
 	void createRectangle();
 	void createCube();
 };

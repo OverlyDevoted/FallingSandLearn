@@ -34,7 +34,7 @@ bool isLeftMouseHolding = false;
 int sandType = _SAND;
 
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-float pitch = 0.0f;
+float pitch = -45.0f;
 float lastX = WIDTH / 2.0f; 
 float lastY = HEIGTH / 2.0f;
 float currentX = WIDTH / 2.0f;
@@ -50,12 +50,12 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 mousePos;
 
 FallingSandHelper sand = FallingSandHelper();
-
+unsigned int initial_size = 30;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
-
+static void PrintMessage(const char* message);
 void createTriangle(unsigned int& VAO, unsigned int& VBO, unsigned int& EBO, float* vertices)
 {
     int indices[] = { //briaunos. there was a note to start from one
@@ -117,7 +117,7 @@ int main()
     }
 
     //for hiding cursor
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glEnable(GL_DEPTH_TEST);
     //setting the viewport dimensions. in this case opengl will take the whole viewport if we made it to look smaller the normalized device coordinates would be transformed to fit into 
@@ -160,17 +160,18 @@ int main()
     Shader shader = Shader("src/res/shaders/fallingSandVertex.glsl", "src/res/shaders/fallingSandFrag.glsl");
 
     MeshGeometry geometry = MeshGeometry();
-    sand.InitializeSpace(5);
+    
+    sand.InitializeSpace(initial_size);
 
     unsigned int supposedCamPos = sand.GetSpaceSize();
     simulationWidth = supposedCamPos;
     simulationHeigth = supposedCamPos;
     // cameraPos.y -= supposedCamPos.y - 1;
     const unsigned int starting_cell = sand.GetStartingCells();
-
+    cameraPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size*2);
     float* fps = new float(0.0f);
     float timer = 0.0f;
-    float iterateWait = 13.0f;
+    float iterateWait = 10.0f;
 #pragma endregion
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
@@ -185,26 +186,21 @@ int main()
         processInput(window);
         if (isLeftMouseHolding)
         {
-            
+           //printf("cam %d", )
             //sand.SetPixel(mousePos.x, mousePos.y, sandType);
         }
 
         //draw
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        //set uniform for the first shader
-        //get uniform location in the shader program getting the location does not require for the program to be used 
-
         
-        //first triangle
         shader.use();
-        //set the value based on location. To set the value the program has to be in use hence glUseProgram is called first
-        
+
         geometry.bindCube();
 
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -224,16 +220,17 @@ int main()
 
                 if (value == 2)
                     color = glm::vec3(1.0f, 1.0f, 0.0f);
-                else
+                else 
                     color = glm::vec3(0.0f, 0.0f, 1.0f);
 
                 shader.setUniform3f("color", color);
+                shader.setUniform3f("lightPos", glm::vec3(0.0f, 1.0f, 0.0f));
 
                 //we can have model matrix be calculated once in exchange for memory
                 
                 glm::mat4 model = glm::mat4(1.0f);
                 model = glm::translate(model, glm::vec3((float)pos.x,-(float)pos.y, pos.z));
-                model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
+                model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
                 shader.setUniform4m("model", model);
                 geometry.drawCubeManual();
             }
@@ -247,18 +244,23 @@ int main()
         }
         //for controlling simulation settings
         ImGui::Begin("Simulation control");
-        ImGui::SliderFloat("Mov speed", &moveSpeed, 0.0f, 20.0f);
+        //ImGui::SliderFloat("Mov speed", &moveSpeed, 0.0f, 20.0f);
         ImGui::Text("Camera pos:");
         ImGui::Text("x:%f y:%f z:%f",cameraPos.x, cameraPos.y, cameraPos.z);
+        ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
         ImGui::Text("FPS:");
         ImGui::Text("%f", *fps);
-        ImGui::Text("Starting cell count:");
-        ImGui::Text("%d", starting_cell);
+        //ImGui::Text("Starting cell count:");
+        //ImGui::Text("%d", starting_cell);
         ImGui::SliderFloat("Iteration speed", &iterateWait, 0.0f, 5.0f);
         ImGui::Text("Next iteration:");
         ImGui::Text("%f %", iterateWait == 0? 0.0 : (timer / iterateWait) * 100);
         ImGui::SliderInt("Cell type to place: ", &sandType, 2, 3);
-
+        if (ImGui::Button("Iterate", ImVec2(70, 30)))
+        {
+            sand.IterateSpace();
+            timer = 0.0f;
+        }
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

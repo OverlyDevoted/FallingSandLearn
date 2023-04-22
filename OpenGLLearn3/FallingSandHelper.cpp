@@ -37,6 +37,13 @@ void FallingSandHelper::AllocateEmptySpace(const int& new_size)
         
         int random_number = rand() % 2 + 1;
         space[i] = random_number;
+        /*if (i == 5 || i == 9)
+        {
+            space[i] = _SAND;
+        }
+        else
+            space[i] = _EMPTY;
+    */
     }
 }
 
@@ -74,9 +81,6 @@ unsigned int FallingSandHelper::GetSpaceSize() const
 
 void FallingSandHelper::GetNeighboarhood(unsigned int& index)
 {
-    //#1 optimisation:
-    //  - We could also try precalculating and storing neighbor positions in order to just fetch data using instead of always running ifs
- 
     switch (space[index])
     {
     case _SAND:
@@ -84,16 +88,17 @@ void FallingSandHelper::GetNeighboarhood(unsigned int& index)
         //check bot
         unsigned int check_index = index + size_sq;
         //check if in bounds
-        if (check_index < size_total)
+        if (check_index > size_total)
+            return;
+            
+        if (space[index] > space[check_index])
         {
-            if (space[index] > space[check_index])
-            {
-                MakeChange(index, check_index);
-                //std::cout << "FROM: " << index << "TO: " << check_index << std::endl;
-                return;
-            }
-                
+            MakeChange(index, check_index);
+            //std::cout << "FROM: " << index << "TO: " << check_index << std::endl;
+            return;
         }
+                
+        
         size_t rand = std::rand() % 4;
         for (size_t i = 1; i <= 4; i++)
         {
@@ -135,7 +140,7 @@ void FallingSandHelper::GetNeighboarhood(unsigned int& index)
                 }
                 continue;
             }
-            if (rule == 3) // left 
+            if (rule == 3) // right 
             {
                 unsigned int right_index = check_index + size;
                 if(right_index >= size_total)
@@ -234,7 +239,7 @@ void FallingSandHelper::CommitChanges()
         [](std::pair<size_t, size_t>& a, std::pair<size_t, size_t>& b) {return a.first < b.first; });
     for (size_t i = 0; i < change_count; i++)
     {
-       
+
         unsigned char temp = space[space_changes[i].second];
         space[space_changes[i].second] = space[space_changes[i].first];
         space[space_changes[i].first] = temp;
