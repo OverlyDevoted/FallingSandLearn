@@ -19,18 +19,21 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#define _USE_MATH_DEFINES
 #include <cmath>
+
 //my headers
 #include "Shader.h"
 #include "Texture.h"
 #include "MeshGeometry.h"
 #include "FallingSandHelper.h"
 
-const int WIDTH = 800, HEIGTH = 800;
+int WIDTH = 800, HEIGTH = 800;
 int simulationWidth = WIDTH, simulationHeigth = HEIGTH;
 
 bool firstMouse = true;
 bool isLeftMouseHolding = false;
+bool isTabHolding;
 int sandType = _SAND;
 
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
@@ -50,12 +53,12 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 mousePos;
 
 FallingSandHelper sand = FallingSandHelper();
-unsigned int initial_size = 30;
+unsigned int initial_size = 4;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
-static void PrintMessage(const char* message);
+glm::vec3 calc_mouse();
 void createTriangle(unsigned int& VAO, unsigned int& VBO, unsigned int& EBO, float* vertices)
 {
     int indices[] = { //briaunos. there was a note to start from one
@@ -158,20 +161,22 @@ int main()
 
     //shader program object setup
     Shader shader = Shader("src/res/shaders/fallingSandVertex.glsl", "src/res/shaders/fallingSandFrag.glsl");
-
+    Shader unlitShader = Shader("src/res/shaders/unlitVertex.glsl", "src/res/shaders/unlitFragment.glsl");
     MeshGeometry geometry = MeshGeometry();
     
-    sand.InitializeSpace(initial_size);
+    initial_size = 40;
+    sand.InitializeSpace(initial_size, false);
 
     unsigned int supposedCamPos = sand.GetSpaceSize();
     simulationWidth = supposedCamPos;
     simulationHeigth = supposedCamPos;
     // cameraPos.y -= supposedCamPos.y - 1;
     const unsigned int starting_cell = sand.GetStartingCells();
-    cameraPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size*2);
+    cameraPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
+    glm::vec3 lightPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     float* fps = new float(0.0f);
     float timer = 0.0f;
-    float iterateWait = 10.0f;
+    float iterateWait = 110.0f;
 #pragma endregion
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
@@ -184,14 +189,14 @@ int main()
 
         //check inputs
         processInput(window);
+        mousePos = calc_mouse();
         if (isLeftMouseHolding)
         {
-           //printf("cam %d", )
-            //sand.SetPixel(mousePos.x, mousePos.y, sandType);
+            sand.SetPixel(glm::uvec3((int)mousePos.x, (int)mousePos.y, (int)mousePos.z), sandType);
         }
 
         //draw
-        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        glClearColor(1.0f, 0.87f, 0.96f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -211,30 +216,69 @@ int main()
         
         shader.setUniform4m("projection", projection);
         shader.setUniform4m("view", view);
-        
-        sand.IterateThroughSpace([&shader, &geometry](glm::uvec3 pos, unsigned char value) {
+
+        #pragma region RenderFallingSand
+        sand.IterateThroughSpace([&shader, &geometry, &lightPos](glm::uvec3 pos, unsigned char value) {
                 
                 if (value == 1)
                     return;
                 glm::vec3 color = glm::vec3();
 
                 if (value == 2)
-                    color = glm::vec3(1.0f, 1.0f, 0.0f);
+                    color = glm::vec3(0.49f, 0.54f, 0.77f);
                 else 
-                    color = glm::vec3(0.0f, 0.0f, 1.0f);
+                    color = glm::vec3(0.98f, 0.8f, 0.35f);
 
                 shader.setUniform3f("color", color);
-                shader.setUniform3f("lightPos", glm::vec3(0.0f, 1.0f, 0.0f));
+                shader.setUniform3f("lightPos", lightPos);
 
                 //we can have model matrix be calculated once in exchange for memory
                 
                 glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3((float)pos.x,-(float)pos.y, pos.z));
+                model = glm::translate(model, glm::vec3((float)pos.x,-(float)pos.y + initial_size, pos.z));
                 model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
                 shader.setUniform4m("model", model);
                 geometry.drawCubeManual();
             }
         );
+        #pragma endregion
+        #pragma region MousePosOnXZ
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(mousePos.x, mousePos.y, mousePos.z));
+        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+        shader.setUniform3f("color", glm::vec3(1.0f,0.0f,0.0f));
+        shader.setUniform4m("model", model);
+        geometry.drawCubeManual();
+        #pragma endregion
+
+        unlitShader.use();
+        unlitShader.setUniform4m("projection", projection);
+        unlitShader.setUniform4m("view", view);
+
+        #pragma region LightSource
+        
+        /*
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(lightPos));
+        model = glm::scale(model, glm::vec3(1.0f,1.0f, 1.0f));
+        unlitShader.setUniform3f("color", glm::vec3(1.0f, 1.0f, 0.0f));
+        unlitShader.setUniform4m("model", model);
+        geometry.drawCubeManual();
+        */
+        #pragma endregion
+        #pragma region Plane
+        
+        geometry.bindRectangle();
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(initial_size / 2 - 0.5f, -0.6f, initial_size / 2 - 0.5f));
+        model = glm::scale(model, glm::vec3(initial_size * 0.5f, 1.0f, initial_size * 0.5f));
+        model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        unlitShader.setUniform3f("color", glm::vec3(0.98f, 0.92f, 0.81f));
+        unlitShader.setUniform4m("model", model);
+        geometry.drawRectangle();
+        
+        #pragma endregion
+
         timer += deltaTime;
         
         if (timer > iterateWait)
@@ -245,16 +289,14 @@ int main()
         //for controlling simulation settings
         ImGui::Begin("Simulation control");
         //ImGui::SliderFloat("Mov speed", &moveSpeed, 0.0f, 20.0f);
-        ImGui::Text("Camera pos:");
-        ImGui::Text("x:%f y:%f z:%f",cameraPos.x, cameraPos.y, cameraPos.z);
+        ImGui::Text("Camera pos: x:%f y:%f z:%f",cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
-        ImGui::Text("FPS:");
-        ImGui::Text("%f", *fps);
+        ImGui::Text("FPS: %f", *fps);
+        ImGui::Text("Cells: %d", sand.GetCellCount());
         //ImGui::Text("Starting cell count:");
         //ImGui::Text("%d", starting_cell);
         ImGui::SliderFloat("Iteration speed", &iterateWait, 0.0f, 5.0f);
-        ImGui::Text("Next iteration:");
-        ImGui::Text("%f %", iterateWait == 0? 0.0 : (timer / iterateWait) * 100);
+        ImGui::Text("Next iteration: %f %", iterateWait == 0? 0.0 : (timer / iterateWait) * 100);
         ImGui::SliderInt("Cell type to place: ", &sandType, 2, 3);
         if (ImGui::Button("Iterate", ImVec2(70, 30)))
         {
@@ -290,6 +332,8 @@ int main()
 }
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
+    WIDTH = width;
+    HEIGTH = height;
     glViewport(0, 0, width, height);
 }
 
@@ -315,11 +359,21 @@ void processInput(GLFWwindow* window)
     
     if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS)
     {
-        if(glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        else
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        if (!isTabHolding)
+        {
+            firstMouse = true;
+            if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            else
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+        isTabHolding = true;
     }
+    else if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_RELEASE)
+    {
+        isTabHolding = false;
+    }
+
     
 }
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -327,7 +381,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
     currentX = xpos;
     currentY = ypos;
-    mousePos = glm::vec3(std::abs(std::floor((currentX / WIDTH) * simulationWidth)), std::abs(std::floor((currentY / HEIGTH) * simulationHeigth)), 0.5f);
     
     if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL)
         return;
@@ -371,6 +424,7 @@ void mouse_click_callback(GLFWwindow* window, int button, int action, int mods)
             //flipped because that's how cells are stored in the array
             //std::cout << std::floor(pos.y) << " " << std::floor(pos.x) << std::endl;
             isLeftMouseHolding = true;
+
         }
         else if (action == GLFW_RELEASE)
         {
@@ -378,4 +432,13 @@ void mouse_click_callback(GLFWwindow* window, int button, int action, int mods)
         }
     }
     
+}
+glm::vec3 calc_mouse()
+{
+    float tempPitch = pitch;
+    if (tempPitch >= 0)
+        return glm::vec3(0.0f,0.0f,0.0f);
+    float angle = std::fabs(tempPitch) * M_PI / 180.0f;
+    float length = cameraPos.y / std::sinf(angle);
+    return glm::vec3(cameraPos + (cameraFront * length));
 }
