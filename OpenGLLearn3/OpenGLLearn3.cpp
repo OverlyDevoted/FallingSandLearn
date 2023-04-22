@@ -131,17 +131,7 @@ int main()
     //mouse clicks
     glfwSetMouseButtonCallback(window, mouse_click_callback);
 
-    //shader program object setup
-    Shader shader = Shader("src/res/shaders/fallingSandVertex.glsl", "src/res/shaders/fallingSandFrag.glsl");
-
-    MeshGeometry geometry = MeshGeometry();
-    sand.InitializeSpace(50, 50);
     
-    glm::vec3 supposedCamPos = sand.GetSpaceSize();
-    simulationWidth = supposedCamPos.x;
-    simulationHeigth = supposedCamPos.y;
-   // cameraPos.y -= supposedCamPos.y - 1;
-    const unsigned int starting_cell = sand.GetStartingCells();
 
 #pragma region IMGUI
     //IMGUI setup
@@ -164,10 +154,24 @@ int main()
     bool show_another_window = true;
     float position[] = { 0.0f,0.0f,3.0f };
 #pragma endregion
+#pragma region SimulationSettings
+
+    //shader program object setup
+    Shader shader = Shader("src/res/shaders/fallingSandVertex.glsl", "src/res/shaders/fallingSandFrag.glsl");
+
+    MeshGeometry geometry = MeshGeometry();
+    sand.InitializeSpace(5);
+
+    unsigned int supposedCamPos = sand.GetSpaceSize();
+    simulationWidth = supposedCamPos;
+    simulationHeigth = supposedCamPos;
+    // cameraPos.y -= supposedCamPos.y - 1;
+    const unsigned int starting_cell = sand.GetStartingCells();
 
     float* fps = new float(0.0f);
     float timer = 0.0f;
-    float iterateWait = 0.0f;
+    float iterateWait = 13.0f;
+#pragma endregion
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
@@ -182,7 +186,7 @@ int main()
         if (isLeftMouseHolding)
         {
             
-            sand.SetPixel(mousePos.x, mousePos.y, sandType);
+            //sand.SetPixel(mousePos.x, mousePos.y, sandType);
         }
 
         //draw
@@ -212,13 +216,13 @@ int main()
         shader.setUniform4m("projection", projection);
         shader.setUniform4m("view", view);
         
-        sand.IterateThroughSpace([&shader, &geometry](int x, int y, unsigned char value) {
+        sand.IterateThroughSpace([&shader, &geometry](glm::uvec3 pos, unsigned char value) {
                 
                 if (value == 1)
                     return;
                 glm::vec3 color = glm::vec3();
 
-                if (value == 3)
+                if (value == 2)
                     color = glm::vec3(1.0f, 1.0f, 0.0f);
                 else
                     color = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -228,7 +232,7 @@ int main()
                 //we can have model matrix be calculated once in exchange for memory
                 
                 glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3((float)x,-(float)y, 0.0f));
+                model = glm::translate(model, glm::vec3((float)pos.x,-(float)pos.y, pos.z));
                 model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
                 shader.setUniform4m("model", model);
                 geometry.drawCubeManual();

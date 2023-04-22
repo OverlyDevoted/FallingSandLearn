@@ -14,40 +14,43 @@ class FallingSandHelper
 public:
 	FallingSandHelper();
 	~FallingSandHelper();
-	void InitializeSpace(const unsigned int &new_row, const unsigned int &new_col);
+	void InitializeSpace(const unsigned int& size);
 	void IterateSpace();
-	void IterateThroughSpace(std::function<void(int, int, unsigned char)> renderFunction);
-	glm::vec3 GetSpaceSize() const;
+	void IterateThroughSpace(std::function<void(glm::uvec3, unsigned char)> renderFunction);
+	unsigned int GetSpaceSize() const;
 	//should probably abstract cell
-	unsigned char GetNeighboarhood(const int& x, const int& y);
+	void GetNeighboarhood(unsigned int& index);
 	unsigned int GetStartingCells() const;
-	void SetPixel(const int& x, const int& y, const unsigned int& type);
+	void SetPixel(const glm::uvec3& pos, const unsigned int& type);
 
 private:
-	unsigned int rows = 100, cols = 100;
-	unsigned int min_row = 3, min_col = 3;
+	unsigned int size_min = 3;
+	unsigned int size;
+	unsigned int size_sq;
+	unsigned int size_total;
 	unsigned int starting_cells = 0;
-	unsigned char** space;
-	std::vector < std::pair<glm::uvec2, glm::uvec2>> space_changes;
+	unsigned char* space;
+	std::vector <std::pair<size_t, size_t>> space_changes;
+	
+	void AllocateEmptySpace(const int &size);
 	void Deallocate2DSpace();
-	void AllocateEmptySpace(const int &new_row, const int &new_col);
-	void MakeChange(const glm::uvec2 &from, const glm::uvec2&to);
+	void MakeChange(const size_t& from, const size_t& to);
 	void CommitChanges();
-	unsigned int GetCellAt(const glm::uvec2& pos);
-	bool IsBounds(const glm::uvec2& pos);
+	size_t ConvertVec3ToIndex(const glm::uvec3& pos);
+	glm::uvec3 ConvertIndexToVec3(const size_t& index);
 };
 //cells with higher value will replace lower value cells 
 enum CellType {
 	_VOID = 0,
 	_EMPTY = 1,
-	_WATER = 2,
-	_SAND = 3,
+	_WATER = 3,
+	_SAND = 2,
 };
 enum CellMove {
 	_STAY = 0,
 	_BOT_MID = 1,
 	_BOT_LEFT = 2,
 	_BOT_RIGHT = 3,
-	_MID_LEFT = 4,
-	_MID_RIGHT = 5,
+	_BOT_FORW = 4,
+	_BOT_BACK = 5
 };

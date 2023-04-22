@@ -2,7 +2,8 @@
 
 FallingSandHelper::FallingSandHelper()
 {
-    AllocateEmptySpace(rows, cols);
+    size = size_min;
+    AllocateEmptySpace(size);
 }
 
 FallingSandHelper::~FallingSandHelper()
@@ -10,95 +11,153 @@ FallingSandHelper::~FallingSandHelper()
     Deallocate2DSpace();
 }
 
-void FallingSandHelper::InitializeSpace(const unsigned int& new_row, const unsigned int& new_col)
+void FallingSandHelper::InitializeSpace(const unsigned int& size)
 {
-    if (new_col < min_col || new_row < min_row)
+    if (size < size_min)
     {
         std::cout << "Couldn't create simulation space. Defined dimensions are too small" << std::endl;
         return;
     }
     Deallocate2DSpace();
-    AllocateEmptySpace(new_row, new_col);
+    AllocateEmptySpace(size);
+}
+
+void FallingSandHelper::AllocateEmptySpace(const int& new_size)
+{
+    starting_cells = 0;
+    // set the random seed
+    std::srand(std::time(nullptr));
+
+    size = new_size;
+    size_sq = new_size * new_size;
+    size_total = size_sq * new_size;
+    space = new unsigned char [size_total];
+    std::cout << "Generating " << size*size*size << " number of cells." << std::endl;
+    for (unsigned int i = 0; i < size_total; i++) {
+        
+        int random_number = rand() % 2 + 1;
+        space[i] = random_number;
+    }
+}
+
+void FallingSandHelper::Deallocate2DSpace()
+{
+    delete[] space;
 }
 
 void FallingSandHelper::IterateSpace()
 {
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            unsigned char cell = space[i][j];
+    for (unsigned int  i = 0; i < size_total; i++) {
+        
+        unsigned char cell = space[i];
             
-            unsigned char tempVal = GetNeighboarhood(j, i);
-            //gather changes
-            switch (tempVal)
-            {
-                case _BOT_MID:
-                    MakeChange(glm::uvec2(j, i), glm::uvec2(j, i + 1));
-                    break;
-                case _BOT_LEFT:
-                    MakeChange(glm::uvec2(j, i), glm::uvec2(j - 1, i + 1));
-                    break;
-                case _BOT_RIGHT:
-                    MakeChange(glm::uvec2(j, i), glm::uvec2(j + 1, i + 1));
-                    break;
-                case _MID_RIGHT:
-                    MakeChange(glm::uvec2(j, i), glm::uvec2(j + 1, i ));
-                    break;
-                case _MID_LEFT:
-                    MakeChange(glm::uvec2(j, i), glm::uvec2(j - 1, i));
-                    break;
-                default:
-                    break;
-            }
-
-        }
+        GetNeighboarhood(i);    
     }
     //commit changes
     CommitChanges();
 }
 
-void FallingSandHelper::IterateThroughSpace(std::function<void(int, int, unsigned char)> renderFunction)
+void FallingSandHelper::IterateThroughSpace(std::function<void(glm::uvec3, unsigned char)> renderFunction)
 {
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            unsigned char cell = space[i][j];
+    for (int i = 0; i < size_total; i++) {
+            unsigned char cell = space[i];
 
-            renderFunction(j, i, cell);
-        }
+       renderFunction(ConvertIndexToVec3(i), cell);
     }
 }
 
-glm::vec3 FallingSandHelper::GetSpaceSize() const
+unsigned int FallingSandHelper::GetSpaceSize() const
 {
-    return glm::vec3((float)rows, (float)cols, 0.0f);
+    return size;
 }
-unsigned char FallingSandHelper::GetNeighboarhood(const int& x, const int& y)
+
+
+void FallingSandHelper::GetNeighboarhood(unsigned int& index)
 {
     //#1 optimisation:
     //  - We could also try precalculating and storing neighbor positions in order to just fetch data using instead of always running ifs
  
-    switch (space[y][x])
+    switch (space[index])
     {
     case _SAND:
     {   
-        if (y + 1 < rows)
+        //check bot
+        unsigned int check_index = index + size_sq;
+        //check if in bounds
+        if (check_index < size_total)
         {
-            if (space[y][x] > space[y + 1][x])
+            if (space[index] > space[check_index])
             {
-                return _BOT_MID;
+                MakeChange(index, check_index);
+                //std::cout << "FROM: " << index << "TO: " << check_index << std::endl;
+                return;
             }
-            if (x - 1 >= 0 && space[y][x] > space[y + 1][x - 1])
-            {
-                return _BOT_LEFT;
-            }
-            if (x + 1 < cols && space[y][x] > space[y + 1][x + 1])
-            {
-                return _BOT_RIGHT;
-            }
+                
         }
-        return _STAY;
+        size_t rand = std::rand() % 4;
+        for (size_t i = 1; i <= 4; i++)
+        {
+            size_t rule = rand + i % 4;
+            if (rule == 0) // front
+            {
+                if (check_index % size != size - 1)
+                {
+                    if (space[index] > space[check_index + 1])
+                    {
+                        MakeChange(index, check_index + 1);
+                        return;
+                    }
+                }
+                continue;
+            }
+            if (rule == 1) // back (P.S. we don't check zero because check_index will never be zero when checking for sand rules)
+            {
+                if (check_index % size != 0)
+                {
+                    if (space[index] > space[check_index - 1])
+                    {
+                        MakeChange(index, check_index - 1);
+                        return;
+                    }
+                }
+                continue;
+            }
+            if (rule == 2) // left 
+            {
+                unsigned int left_index = check_index - size;
+                if (check_index / size_sq == left_index / size_sq)
+                {
+                    if (space[index] > space[left_index])
+                    {
+                        MakeChange(index, left_index);
+                        return;
+                    }
+                }
+                continue;
+            }
+            if (rule == 3) // left 
+            {
+                unsigned int right_index = check_index + size;
+                if(right_index >= size_total)
+                    continue;
+
+                if (check_index / size_sq == right_index / size_sq)
+                {
+                    if (space[index] > space[right_index])
+                    {
+                        MakeChange(index, right_index);
+                        return;
+                    }
+                }
+
+                continue;
+            }
+
+        }
     }
     case _WATER:
     {
+        /*
         if (y + 1 < rows)
         {
             if (space[y + 1][x] == _EMPTY)
@@ -123,9 +182,10 @@ unsigned char FallingSandHelper::GetNeighboarhood(const int& x, const int& y)
             return _MID_LEFT;
         }
         return _STAY;
+        */
     }
         default:
-            return _STAY;
+            return;
     }
 }
 
@@ -134,43 +194,24 @@ unsigned int FallingSandHelper::GetStartingCells() const
     return starting_cells;
 }
 
-void FallingSandHelper::SetPixel(const int& x, const int& y, const unsigned int& type)
+void FallingSandHelper::SetPixel(const glm::uvec3& pos, const unsigned int& type)
 {
-    space[y][x] = type;
+    space[ConvertVec3ToIndex(pos)] = type;
+}
+//might break because uvec are 4 byte and return is 8 byte
+size_t FallingSandHelper::ConvertVec3ToIndex(const glm::uvec3& pos) {
+    return pos.x + (pos.y * size_sq) + (pos.z * size);
 }
 
-void FallingSandHelper::Deallocate2DSpace()
-{
-    for (int i = 0; i < rows; i++) {
-        delete[]space[i];
-    }
-    delete[] space;
+//might break because uvec are 4 byte and return is 8 byte
+glm::uvec3 FallingSandHelper::ConvertIndexToVec3(const size_t& index) {
+    int y = index / size_sq;
+    int y_sub = (y * size_sq);
+    int z = (index - y_sub) / size;
+    int x = (index - (y_sub)-(z * size));
+    return glm::uvec3(x, y, z);
 }
-
-void FallingSandHelper::AllocateEmptySpace(const int& new_row, const int& new_col)
-{
-    starting_cells = 0;
-    // set the random seed
-    std::srand(std::time(nullptr));
-
-    rows = new_row;
-    cols = new_col;
-    space = new unsigned char* [rows];
-    std::cout << "Generating " << rows * cols << " number of cells." << std::endl;
-    for (int i = 0; i < rows; i++) {
-        space[i] = new unsigned char[cols];
-        for (int j = 0; j < cols; j++) {
-            unsigned char cell = std::rand() % 2 + 1;
-            //unsigned char cell = _EMPTY;
-            if (cell == _SAND)
-                starting_cells++;
-  
-            space[i][j] = cell;
-        }
-    }
-}
-
-void FallingSandHelper::MakeChange(const glm::uvec2& from, const glm::uvec2& to)
+void FallingSandHelper::MakeChange(const size_t& from, const size_t& to)
 {
     space_changes.emplace_back(to, from);
 }
@@ -180,7 +221,7 @@ void FallingSandHelper::CommitChanges()
     size_t change_count = space_changes.size();
     for (size_t i = 0; i < change_count; i++)
     {
-        if (GetCellAt(space_changes.at(i).first) >= GetCellAt(space_changes.at(i).second))
+        if (space[space_changes.at(i).first] >= space[space_changes.at(i).second])
         {
             space_changes[i] = space_changes.back(); 
             space_changes.pop_back();
@@ -188,27 +229,16 @@ void FallingSandHelper::CommitChanges()
             i--;
         }
     }
-    unsigned int temp_rows = rows;
-    std::sort(space_changes.begin(), space_changes.end(), [&temp_rows](std::pair<glm::uvec2, glm::uvec2>& a, std::pair<glm::uvec2, glm::uvec2>& b) {return (a.first.x + (a.first.y * temp_rows)) < (b.first.x + (b.first.y * temp_rows)); });
+   
+    std::sort(space_changes.begin(), space_changes.end(), 
+        [](std::pair<size_t, size_t>& a, std::pair<size_t, size_t>& b) {return a.first < b.first; });
     for (size_t i = 0; i < change_count; i++)
     {
-        glm::uvec2 dst = space_changes[i].first;
-        glm::uvec2 src = space_changes[i].second;
-        
-        int temp = space[dst.y][dst.x];
-        space[dst.y][dst.x] = space[src.y][src.x];
-        space[src.y][src.x] = temp;
+       
+        unsigned char temp = space[space_changes[i].second];
+        space[space_changes[i].second] = space[space_changes[i].first];
+        space[space_changes[i].first] = temp;
     }
 
     space_changes.clear();
-}
-
-unsigned int FallingSandHelper::GetCellAt(const glm::uvec2& pos)
-{
-    return space[pos.y][pos.x];
-}
-
-bool FallingSandHelper::IsBounds(const glm::uvec2& pos)
-{
-    return ((pos.y >= 0 && pos.y < rows) && (pos.x >= 0 && pos.x < cols));
 }
