@@ -54,11 +54,13 @@ glm::vec3 mousePos;
 
 FallingSandHelper sand = FallingSandHelper();
 unsigned int initial_size = 4;
+bool isRandom = false;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 glm::vec3 calc_mouse();
+void printGLinfo();
 void createTriangle(unsigned int& VAO, unsigned int& VBO, unsigned int& EBO, float* vertices)
 {
     int indices[] = { //briaunos. there was a note to start from one
@@ -99,9 +101,10 @@ void createTriangle(unsigned int& VAO, unsigned int& VBO, unsigned int& EBO, flo
 int main()
 {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
 
     GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGTH, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
@@ -111,14 +114,14 @@ int main()
         return -1;
     }
     glfwMakeContextCurrent(window);
-
+    
     //check glad
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-
+    printGLinfo();
     //for hiding cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -133,8 +136,6 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     //mouse clicks
     glfwSetMouseButtonCallback(window, mouse_click_callback);
-
-    
 
 #pragma region IMGUI
     //IMGUI setup
@@ -157,6 +158,7 @@ int main()
     bool show_another_window = true;
     float position[] = { 0.0f,0.0f,3.0f };
 #pragma endregion
+
 #pragma region SimulationSettings
 
     //shader program object setup
@@ -164,8 +166,9 @@ int main()
     Shader unlitShader = Shader("src/res/shaders/unlitVertex.glsl", "src/res/shaders/unlitFragment.glsl");
     MeshGeometry geometry = MeshGeometry();
     
-    initial_size = 40;
-    sand.InitializeSpace(initial_size, false);
+    initial_size = 50;
+    isRandom = false;
+    sand.InitializeSpace(initial_size, isRandom);
 
     unsigned int supposedCamPos = sand.GetSpaceSize();
     simulationWidth = supposedCamPos;
@@ -174,50 +177,56 @@ int main()
     const unsigned int starting_cell = sand.GetStartingCells();
     cameraPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     glm::vec3 lightPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
-    float* fps = new float(0.0f);
+    float fps = 0.0f;
     float timer = 0.0f;
-    float iterateWait = 110.0f;
+    float iterateWait = 0.0f;
+    float renderTime = 0.0f;
+    float iterationTime = 0.0f;
+    float fpsCount = 0.0;
+    size_t iterationCount = 0;
+    size_t maxIterations = 100;
+    
 #pragma endregion
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
+        
         //update time
         float currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-        *fps = 1.0f / deltaTime;
-
-        //check inputs
+        fps = 1.0f / deltaTime;
+        fpsCount += fps;
+        #pragma region Inputs
         processInput(window);
         mousePos = calc_mouse();
         if (isLeftMouseHolding)
         {
             sand.SetPixel(glm::uvec3((int)mousePos.x, (int)mousePos.y, (int)mousePos.z), sandType);
         }
-
-        //draw
-        glClearColor(1.0f, 0.87f, 0.96f, 1.0f);
+        #pragma endregion
+        //clear color buffers
+        glClearColor(0.54f, 0.76f, 0.49f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        
+        #pragma region Projection/view diffuse shader
         shader.use();
 
-        geometry.bindCube();
-
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        
         glm::mat4 projection;
         projection = glm::perspective(glm::radians(50.0f), (float)(WIDTH / HEIGTH), 0.1f, 1000.0f);
         //projection = glm::ortho(0.0f, supposedCamPos.x, 0.0f, supposedCamPos.y, 0.1f, 1000.0f);
         
         shader.setUniform4m("projection", projection);
         shader.setUniform4m("view", view);
-
+        #pragma endregion
+        float renderStart = (float)glfwGetTime();
         #pragma region RenderFallingSand
+        geometry.bindCube();
         sand.IterateThroughSpace([&shader, &geometry, &lightPos](glm::uvec3 pos, unsigned char value) {
                 
                 if (value == 1)
@@ -242,6 +251,7 @@ int main()
             }
         );
         #pragma endregion
+        float renderEnd = (float)glfwGetTime();
         #pragma region MousePosOnXZ
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(mousePos.x, mousePos.y, mousePos.z));
@@ -250,11 +260,11 @@ int main()
         shader.setUniform4m("model", model);
         geometry.drawCubeManual();
         #pragma endregion
-
+        #pragma region UnlitShader
         unlitShader.use();
         unlitShader.setUniform4m("projection", projection);
         unlitShader.setUniform4m("view", view);
-
+        #pragma endregion
         #pragma region LightSource
         
         /*
@@ -278,45 +288,72 @@ int main()
         geometry.drawRectangle();
         
         #pragma endregion
-
+        float iterateStart;
+        float iterateEnd;
+        #pragma region IterateFallingSand
         timer += deltaTime;
-        
         if (timer > iterateWait)
         {
             timer = 0.0f;
+            iterateStart = (float)glfwGetTime();
             sand.IterateSpace();
+            iterateEnd = (float)glfwGetTime();
+            iterationCount++;
         }
+        #pragma endregion 
+        
+        #pragma region ImGUI/Metrics
         //for controlling simulation settings
         ImGui::Begin("Simulation control");
         //ImGui::SliderFloat("Mov speed", &moveSpeed, 0.0f, 20.0f);
-        ImGui::Text("Camera pos: x:%f y:%f z:%f",cameraPos.x, cameraPos.y, cameraPos.z);
-        ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
-        ImGui::Text("FPS: %f", *fps);
+        //ImGui::Text("Camera pos: x:%f y:%f z:%f",cameraPos.x, cameraPos.y, cameraPos.z);
+        //ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
+        ImGui::Text("FPS: %f", fps);
         ImGui::Text("Cells: %d", sand.GetCellCount());
         //ImGui::Text("Starting cell count:");
         //ImGui::Text("%d", starting_cell);
-        ImGui::SliderFloat("Iteration speed", &iterateWait, 0.0f, 5.0f);
+        ImGui::SliderFloat("Iteration wait", &iterateWait, 0.0f, 5.0f);
         ImGui::Text("Next iteration: %f %", iterateWait == 0? 0.0 : (timer / iterateWait) * 100);
         ImGui::SliderInt("Cell type to place: ", &sandType, 2, 3);
         if (ImGui::Button("Iterate", ImVec2(70, 30)))
         {
+            iterateStart = (float)glfwGetTime();
             sand.IterateSpace();
+            iterateEnd = (float)glfwGetTime();
+            iterationCount++;
             timer = 0.0f;
         }
+        ImGui::Text("Iteration count: %d", iterationCount);
+        iterationTime += iterateEnd - iterateStart;
+        renderTime += renderEnd - renderStart;
+        ImGui::Text("Render time: %f ms", renderEnd - renderStart);
+        ImGui::Text("Iteration time: %f ms", iterateEnd - iterateStart);
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
+        #pragma endregion
         //front buffer contains current screen image, while all other draw functions are performed onto the second buffer which is then swapped with this command after drawing all the geometries
         //this prevents user from seeing artifacts from drawn geometries at runtime
         glfwSwapBuffers(window);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        
+        if (maxIterations != 0 && maxIterations-1 < iterationCount)
+            glfwSetWindowShouldClose(window, true);
 
         //checks if any event have been triggered (i/o inputs)
         glfwPollEvents();
     }
 
+    printf("\nSIMULATION RESULTS:\n");
+
+    printf("World size: %d\n", initial_size);
+    printf("Is random: %d\n", isRandom);
+    printf("Cell count at the end %d\n", sand.GetCellCount());
+    printf("Iterations: %d \n", iterationCount);
+    printf("Average render time: %f ms\n", renderTime / iterationCount);
+    printf("Average iteration time: %f ms\n", iterationTime / iterationCount);
+    printf("Average fps: %f\n\n", fpsCount / iterationCount);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -327,7 +364,6 @@ int main()
     //terminate glfw session
     glfwTerminate();
 
-    delete fps;
     return 0;
 }
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -441,4 +477,22 @@ glm::vec3 calc_mouse()
     float angle = std::fabs(tempPitch) * M_PI / 180.0f;
     float length = cameraPos.y / std::sinf(angle);
     return glm::vec3(cameraPos + (cameraFront * length));
+}
+void printGLinfo()
+{
+    const GLubyte* vendor = glGetString(GL_VENDOR);
+    printf("\nGL vendor: %s\n", vendor);
+    const GLubyte* renderer = glGetString(GL_RENDERER);
+    printf("GL vendor: %s\n", renderer);
+    const GLubyte* version = glGetString(GL_VERSION);
+    printf("GL version (string): %s\n", version);
+    
+    GLint major, minor;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
+    
+    printf("GL version (integer): %d.%d\n", major, minor);
+
+    const GLubyte* glslVersion = glGetString(GL_SHADING_LANGUAGE_VERSION);
+    printf("GLSL version (string): %s\n\n", glslVersion);
 }

@@ -13,6 +13,7 @@ class Shader
 {
 public:
 	unsigned int ID;
+	Shader(const char* computePath);
 	Shader(const char* vertexPath, const char* fragmentPath);
 	~Shader();
 	unsigned int compileShaderFile(const char* filePath, GLuint type);

@@ -33,7 +33,7 @@ void FallingSandHelper::AllocateEmptySpace(const int& new_size, const bool& rand
     size_sq = new_size * new_size;
     size_total = size_sq * new_size;
     space = new unsigned char [size_total];
-    std::cout << "Generating " << size*size*size << " number of cells." << std::endl;
+    printf("\nGenerating %d number of cells.\n", size * size * size);
     for (unsigned int i = 0; i < size_total; i++) {
         if (random)
         {
@@ -43,11 +43,7 @@ void FallingSandHelper::AllocateEmptySpace(const int& new_size, const bool& rand
         }
         else
         {
-            if (i ==49)
-            {
-                space[i] = _WATER;
-            }
-            else
+            
             space[i] = _EMPTY;
         }
     }
@@ -71,21 +67,14 @@ void FallingSandHelper::IterateSpace()
     //commit changes
     CommitChanges();
 }
-unsigned int FallingSandHelper::GetCellCount() const
-{
-    return cur_cells;
-}
+
 void FallingSandHelper::IterateThroughSpace(std::function<void(glm::uvec3, unsigned char)> renderFunction)
 {
     for (int i = 0; i < size_total; i++) {
-       unsigned char cell = space[i];
-       renderFunction(ConvertIndexToVec3(i), cell);
-    }
-}
-
-unsigned int FallingSandHelper::GetSpaceSize() const
-{
-    return size;
+        unsigned char cell = space[i];
+        if(cell>_EMPTY)
+            renderFunction(ConvertIndexToVec3(i), cell);
+    } 
 }
 
 
@@ -285,4 +274,12 @@ void FallingSandHelper::CommitChanges()
     }
 
     space_changes.clear();
+}
+unsigned int FallingSandHelper::GetCellCount() const
+{
+    return cur_cells;
+}
+unsigned int FallingSandHelper::GetSpaceSize() const
+{
+    return size;
 }
