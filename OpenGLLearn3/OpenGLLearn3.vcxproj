@@ -156,10 +156,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="FallingSandHelper.cpp" />
+    <ClCompile Include="glad.c" />
     <ClCompile Include="MeshGeometry.cpp" />
     <ClCompile Include="OpenGLLearn3.cpp" />
     <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="src\vendor\glad.c" />
     <ClCompile Include="src\vendor\imgui\imgui.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_demo.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_draw.cpp" />

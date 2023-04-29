@@ -27,7 +27,6 @@
 #include "Texture.h"
 #include "MeshGeometry.h"
 #include "FallingSandHelper.h"
-
 int WIDTH = 800, HEIGTH = 800;
 int simulationWidth = WIDTH, simulationHeigth = HEIGTH;
 
@@ -61,43 +60,7 @@ void mouse_click_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 glm::vec3 calc_mouse();
 void printGLinfo();
-void createTriangle(unsigned int& VAO, unsigned int& VBO, unsigned int& EBO, float* vertices)
-{
-    int indices[] = { //briaunos. there was a note to start from one
-        0,1,2,
-        0,3,2
-    };
 
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    //assigns an ID to a vbo
-    glGenBuffers(1, &VBO);
-    //we bind the buffer so any buffer calls we make on the target GL_ARRAY_BUFFER will be used to modify the currently bound buffer
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // so as you can see we specify a buffer GL_ARRAY_BUFFER, this tells opengl that we are configuring that buffer and then with this command we send the vertex data to the gpu
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 32, vertices, GL_STATIC_DRAW);
-
-    //element buffer which says how to render triangles
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    //linking vertex attributes is basically saying how to vertex data is stored, what goes into a single vertex
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // texture attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
 int main()
 {
     glfwInit();
@@ -126,6 +89,7 @@ int main()
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_PROGRAM_POINT_SIZE);
     //setting the viewport dimensions. in this case opengl will take the whole viewport if we made it to look smaller the normalized device coordinates would be transformed to fit into 
     //specified witdh and heigth
     glViewport(0, 0, WIDTH, HEIGTH);
@@ -136,6 +100,9 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     //mouse clicks
     glfwSetMouseButtonCallback(window, mouse_click_callback);
+    srand(time(0));
+
+
 
 #pragma region IMGUI
     //IMGUI setup
@@ -160,13 +127,12 @@ int main()
 #pragma endregion
 
 #pragma region SimulationSettings
-
     //shader program object setup
     Shader shader = Shader("src/res/shaders/fallingSandVertex.glsl", "src/res/shaders/fallingSandFrag.glsl");
     Shader unlitShader = Shader("src/res/shaders/unlitVertex.glsl", "src/res/shaders/unlitFragment.glsl");
     MeshGeometry geometry = MeshGeometry();
     
-    initial_size = 50;
+    initial_size = 10;
     isRandom = false;
     sand.InitializeSpace(initial_size, isRandom);
 
@@ -179,18 +145,105 @@ int main()
     glm::vec3 lightPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     float fps = 0.0f;
     float timer = 0.0f;
-    float iterateWait = 0.0f;
+    float iterateWait = 10000.0f;
+    float iterateStart = 0.0f;
+    float iterateEnd = 0.0f;
+    
     float renderTime = 0.0f;
     float iterationTime = 0.0f;
     float fpsCount = 0.0;
     size_t iterationCount = 0;
-    size_t maxIterations = 100;
-    
+    size_t maxIterations = 0; 
+
+
 #pragma endregion
+#pragma region Compute Shader Setup
+    //compute shader setup
+    #pragma region Cells buffer
+    struct pos
+    {
+        GLfloat x, y, z; // positions
+        GLint state;
+    };
+    
+    unsigned int volume = initial_size * initial_size * initial_size;
+    printf("volume: %d\n", volume);
+    GLuint posSSbo; // shader storage buffer object for storing the positions
+    glGenBuffers(1, &posSSbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, posSSbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, volume * sizeof(struct pos), NULL, GL_STATIC_DRAW);
+    GLint bufMask = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
+    struct pos* points = (struct pos*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, volume * sizeof(struct pos), bufMask);
+    int counter = 0;
+    for (int i = 0; i < initial_size; i++)
+    {
+        for (int j = 0; j < initial_size; j++)
+        {
+            for (int k = 0; k < initial_size; k++)
+            {
+                points[counter].x = j;
+                points[counter].y = initial_size - 1 - i;
+                points[counter].z = initial_size - 1 - k;
+                if (isRandom)
+                    points[counter].state = rand() % 2;
+                else if (counter == 0 || counter == initial_size* initial_size*2)
+                {
+                    points[counter].state = 1;
+                }
+                else
+                    points[counter].state = 0; 
+                //printf("index %d: x: %d, y: %d, z: %d\n", counter, j, i, k);
+                counter++;
+            }
+        }
+    }
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, posSSbo);
+    glEnableVertexAttribArray(4);
+    glBindBuffer(GL_ARRAY_BUFFER, posSSbo);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    #pragma endregion 
+    #pragma region swapsBuffer
+    struct swaps {
+        GLint from;
+        GLint to;
+    };
+    GLuint swapSSbo; // shader storage buffer object for storing the positions
+    glGenBuffers(1, &swapSSbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, swapSSbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, volume * sizeof(swaps), NULL, GL_STATIC_DRAW);
+    
+    struct swaps* swaps = (struct swaps*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, volume * sizeof(struct swaps), bufMask);
+    counter = 0;
+    for (int i = 0; i < initial_size; i++)
+    {
+        for (int j = 0; j < initial_size; j++)
+        {
+            for (int k = 0; k < initial_size; k++)
+            {
+                swaps[counter].from = -1;
+                swaps[counter].to = -1;
+                counter++;
+            }
+        }
+    }
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, swapSSbo);
+    glEnableVertexAttribArray(5);
+    glBindBuffer(GL_ARRAY_BUFFER, swapSSbo);
+    glVertexAttribPointer(5, 2, GL_INT, GL_FALSE, 0, 0);
+    #pragma endregion
+#pragma endregion 
+    Shader computeIterationShader   = Shader("src/res/shaders/compute/computeSand.glsl");
+    Shader computeSwapsShader       = Shader("src/res/shaders/compute/computeSwaps.glsl");
+    Shader forComputeRes            = Shader("src/res/shaders/compute/computeVert.glsl", "src/res/shaders/compute/computeFrag.glsl");
+    
+    
+
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
-        
+        bool iterated =false;
         //update time
         float currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -206,28 +259,37 @@ int main()
         }
         #pragma endregion
         //clear color buffers
-        glClearColor(0.54f, 0.76f, 0.49f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        #pragma region Projection/view diffuse shader
-        shader.use();
-
+        
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projection;
         projection = glm::perspective(glm::radians(50.0f), (float)(WIDTH / HEIGTH), 0.1f, 1000.0f);
         //projection = glm::ortho(0.0f, supposedCamPos.x, 0.0f, supposedCamPos.y, 0.1f, 1000.0f);
         
-        shader.setUniform4m("projection", projection);
-        shader.setUniform4m("view", view);
-        #pragma endregion
+        //shader.use();
+        //shader.setUniform4m("projection", projection);
+        //shader.setUniform4m("view", view);
+        
+        //#pragma endregion
         float renderStart = (float)glfwGetTime();
         #pragma region RenderFallingSand
-        geometry.bindCube();
-        sand.IterateThroughSpace([&shader, &geometry, &lightPos](glm::uvec3 pos, unsigned char value) {
+        
+        
+
+        forComputeRes.use();
+        forComputeRes.setUniform4m("projection", projection);
+        forComputeRes.setUniform4m("view", view);
+        //glBindVertexArray(posVao);
+        glDrawArrays(GL_POINTS, 0, volume);
+        
+        //geometry.bindCube();
+        /*sand.IterateThroughSpace([&shader, &geometry, &lightPos](glm::uvec3 pos, unsigned char value) {
                 
                 if (value == 1)
                     return;
@@ -249,9 +311,10 @@ int main()
                 shader.setUniform4m("model", model);
                 geometry.drawCubeManual();
             }
-        );
+        );*/
         #pragma endregion
         float renderEnd = (float)glfwGetTime();
+
         #pragma region MousePosOnXZ
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(mousePos.x, mousePos.y, mousePos.z));
@@ -276,27 +339,39 @@ int main()
         geometry.drawCubeManual();
         */
         #pragma endregion
-        #pragma region Plane
+        /*
+            #pragma region Plane
         
         geometry.bindRectangle();
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(initial_size / 2 - 0.5f, -0.6f, initial_size / 2 - 0.5f));
         model = glm::scale(model, glm::vec3(initial_size * 0.5f, 1.0f, initial_size * 0.5f));
         model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        unlitShader.setUniform3f("color", glm::vec3(0.98f, 0.92f, 0.81f));
+        unlitShader.setUniform3f("color", glm::vec3(0.2f, 0.2f, 0.2f));
         unlitShader.setUniform4m("model", model);
         geometry.drawRectangle();
         
         #pragma endregion
-        float iterateStart;
-        float iterateEnd;
+        */
+        
         #pragma region IterateFallingSand
         timer += deltaTime;
         if (timer > iterateWait)
         {
             timer = 0.0f;
             iterateStart = (float)glfwGetTime();
-            sand.IterateSpace();
+            computeIterationShader.use();
+            computeIterationShader.setUniform1uint("size", initial_size);
+            computeIterationShader.setUniform1uint("volume", volume);
+            glDispatchCompute(volume, 1, 1);
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+            computeSwapsShader.use();
+            glDispatchCompute(volume, 1, 1);
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+            
+            
+            //sand.IterateSpace();
             iterateEnd = (float)glfwGetTime();
             iterationCount++;
         }
@@ -306,7 +381,7 @@ int main()
         //for controlling simulation settings
         ImGui::Begin("Simulation control");
         //ImGui::SliderFloat("Mov speed", &moveSpeed, 0.0f, 20.0f);
-        //ImGui::Text("Camera pos: x:%f y:%f z:%f",cameraPos.x, cameraPos.y, cameraPos.z);
+        ImGui::Text("Camera pos: x:%f y:%f z:%f",cameraPos.x, cameraPos.y, cameraPos.z);
         //ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
         ImGui::Text("FPS: %f", fps);
         ImGui::Text("Cells: %d", sand.GetCellCount());
@@ -317,17 +392,32 @@ int main()
         ImGui::SliderInt("Cell type to place: ", &sandType, 2, 3);
         if (ImGui::Button("Iterate", ImVec2(70, 30)))
         {
+            iterated = true;
             iterateStart = (float)glfwGetTime();
-            sand.IterateSpace();
+            //sand.IterateSpace();
+            computeIterationShader.use();
+            computeIterationShader.setUniform1uint("size", initial_size);
+            computeIterationShader.setUniform1uint("volume", volume);
+            glDispatchCompute(volume, 1, 1);
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+            
+            computeSwapsShader.use();
+            glDispatchCompute(volume, 1, 1);
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
             iterateEnd = (float)glfwGetTime();
             iterationCount++;
             timer = 0.0f;
         }
         ImGui::Text("Iteration count: %d", iterationCount);
-        iterationTime += iterateEnd - iterateStart;
+        if (iterated)
+        {
+            iterationTime += iterateEnd - iterateStart;
+        }
+        ImGui::Text("Iteration time: %f s", iterateEnd - iterateStart);
+        
         renderTime += renderEnd - renderStart;
-        ImGui::Text("Render time: %f ms", renderEnd - renderStart);
-        ImGui::Text("Iteration time: %f ms", iterateEnd - iterateStart);
+        ImGui::Text("Render time: %f s", renderEnd - renderStart);
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -495,4 +585,22 @@ void printGLinfo()
 
     const GLubyte* glslVersion = glGetString(GL_SHADING_LANGUAGE_VERSION);
     printf("GLSL version (string): %s\n\n", glslVersion);
+
+    int work_grp_cnt[3];
+
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &work_grp_cnt[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &work_grp_cnt[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &work_grp_cnt[2]);
+
+    printf("max global (total) work group counts x:%i y:%i z:%i\n",
+        work_grp_cnt[0], work_grp_cnt[1], work_grp_cnt[2]);
+
+    int work_grp_size[3];
+
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &work_grp_size[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &work_grp_size[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &work_grp_size[2]);
+
+    printf("max local (in one shader) work group sizes x:%i y:%i z:%i\n\n",
+        work_grp_size[0], work_grp_size[1], work_grp_size[2]);
 }

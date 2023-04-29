@@ -252,6 +252,7 @@ void FallingSandHelper::MakeChange(const size_t& from, const size_t& to)
 void FallingSandHelper::CommitChanges()
 {
     size_t change_count = space_changes.size();
+    //this part is not needed
     for (size_t i = 0; i < change_count; i++)
     {
         if (space[space_changes.at(i).first] >= space[space_changes.at(i).second])

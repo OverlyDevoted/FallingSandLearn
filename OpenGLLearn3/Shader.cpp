@@ -123,3 +123,8 @@ void Shader::setUniform3f(std::string locationName, glm::vec3 values)
 
     glUniform3f(vertexColorLocation, values.x, values.y, values.z);
 }
+void Shader::setUniform1uint(std::string locationName, unsigned int value)
+{
+    int location = glGetUniformLocation(ID, locationName.c_str());
+    glUniform1ui(location, value);
+}
