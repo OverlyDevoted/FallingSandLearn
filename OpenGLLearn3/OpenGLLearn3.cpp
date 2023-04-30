@@ -132,7 +132,7 @@ int main()
     Shader unlitShader = Shader("src/res/shaders/unlitVertex.glsl", "src/res/shaders/unlitFragment.glsl");
     MeshGeometry geometry = MeshGeometry();
     
-    initial_size = 10;
+    initial_size = 3;
     isRandom = false;
     sand.InitializeSpace(initial_size, isRandom);
 
@@ -186,7 +186,7 @@ int main()
                 points[counter].z = initial_size - 1 - k;
                 if (isRandom)
                     points[counter].state = rand() % 2;
-                else if (counter == 0 || counter == initial_size* initial_size*2)
+                else if (counter == 0 || counter == initial_size*initial_size) 
                 {
                     points[counter].state = 1;
                 }
@@ -238,8 +238,6 @@ int main()
     Shader computeSwapsShader       = Shader("src/res/shaders/compute/computeSwaps.glsl");
     Shader forComputeRes            = Shader("src/res/shaders/compute/computeVert.glsl", "src/res/shaders/compute/computeFrag.glsl");
     
-    
-
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
@@ -369,7 +367,6 @@ int main()
             computeSwapsShader.use();
             glDispatchCompute(volume, 1, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
-            
             
             //sand.IterateSpace();
             iterateEnd = (float)glfwGetTime();

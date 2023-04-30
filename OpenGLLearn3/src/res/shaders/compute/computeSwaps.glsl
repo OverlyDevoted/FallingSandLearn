@@ -21,4 +21,6 @@ void main()
 	float tempFrom = state[from].w;
 	state[from].w = state[to].w;
 	state[to].w = tempFrom;
+	swap[gid].x = -1;
+	swap[gid].y = -1;
 }
