@@ -82,6 +82,10 @@ std::string Shader::readFromFile(std::string fileName)
     return nullptr;
 }
 
+Shader::Shader()
+{
+}
+
 void Shader::use()
 {
     //checks

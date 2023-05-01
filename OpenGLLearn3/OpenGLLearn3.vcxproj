@@ -155,11 +155,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="FallingSandHelper.cpp" />
+    <ClCompile Include="ParallelFallingSand.cpp" />
+    <ClCompile Include="SequentialFallingSand.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="MeshGeometry.cpp" />
     <ClCompile Include="OpenGLLearn3.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="SimulationHelper.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_demo.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_draw.cpp" />
@@ -170,9 +172,12 @@
     <ClCompile Include="Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="FallingSandHelper.h" />
+    <ClInclude Include="ParallelFallingSand.h" />
+    <ClInclude Include="SequentialFallingSand.h" />
+    <ClInclude Include="IFallingSand.h" />
     <ClInclude Include="MeshGeometry.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="SimulationHelper.h" />
     <ClInclude Include="src\vendor\imgui\imconfig.h" />
     <ClInclude Include="src\vendor\imgui\imgui.h" />
     <ClInclude Include="src\vendor\imgui\imgui_impl_glfw.h" />
@@ -183,6 +188,9 @@
     <ClInclude Include="src\vendor\imgui\imstb_textedit.h" />
     <ClInclude Include="src\vendor\imgui\imstb_truetype.h" />
     <ClInclude Include="Texture.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgui.ini" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

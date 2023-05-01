@@ -1,29 +1,34 @@
-#include "FallingSandHelper.h"
+#include "SequentialFallingSand.h"
 
-FallingSandHelper::FallingSandHelper()
+SequentialFallingSand::SequentialFallingSand()
 {
-    size = size_min;
-    cur_cells = 0;
-    AllocateEmptySpace(size, true);
+    space = new unsigned char();
+    cubeShader = new Shader("src/res/shaders/fallingSandVertex.glsl", "src/res/shaders/fallingSandFrag.glsl");
+    geometry = new MeshGeometry();
+    
 }
 
-FallingSandHelper::~FallingSandHelper()
+SequentialFallingSand::~SequentialFallingSand()
 {
-    Deallocate2DSpace();
+    cubeShader->~Shader();
+    geometry->~MeshGeometry();
+    DeallocateSpace();
 }
 
-void FallingSandHelper::InitializeSpace(const unsigned int& size, const bool& random)
+void SequentialFallingSand::InitializeSpace(const unsigned int& size, const bool& random) 
 {
+    unsigned int use_size = size;
     if (size < size_min)
     {
-        std::cout << "Couldn't create simulation space. Defined dimensions are too small" << std::endl;
-        return;
+        std::cout << "Couldn't create simulation space. Defined dimensions are too small. Creating minimum size space." << std::endl;
+        use_size = size_min;
     }
-    Deallocate2DSpace();
-    AllocateEmptySpace(size, random);
+    lightPos = glm::vec3((float)use_size / 2, (float)use_size, (float)use_size);
+    DeallocateSpace();
+    CreateSpace(use_size, random);
 }
 
-void FallingSandHelper::AllocateEmptySpace(const int& new_size, const bool& random)
+void SequentialFallingSand::CreateSpace(const int& new_size, const bool& random)
 {
     starting_cells = 0;
     // set the random seed
@@ -43,18 +48,17 @@ void FallingSandHelper::AllocateEmptySpace(const int& new_size, const bool& rand
         }
         else
         {
-            
             space[i] = _EMPTY;
         }
     }
 }
 
-void FallingSandHelper::Deallocate2DSpace()
+void SequentialFallingSand::DeallocateSpace()
 {
     delete[] space;
 }
 
-void FallingSandHelper::IterateSpace()
+void SequentialFallingSand::IterateSpace()
 {
     cur_cells = 0;
     for (unsigned int  i = 0; i < size_total; i++) {
@@ -68,17 +72,38 @@ void FallingSandHelper::IterateSpace()
     CommitChanges();
 }
 
-void FallingSandHelper::IterateThroughSpace(std::function<void(glm::uvec3, unsigned char)> renderFunction)
+void SequentialFallingSand::IterateThroughSpace()
 {
     for (int i = 0; i < size_total; i++) {
         unsigned char cell = space[i];
-        if(cell>_EMPTY)
-            renderFunction(ConvertIndexToVec3(i), cell);
+        
+        if (cell > _EMPTY)
+        {
+            if (cell == 1)
+                return;
+            glm::vec3 color = glm::vec3();
+
+            if (cell == 2)
+                color = glm::vec3(0.49f, 0.54f, 0.77f);
+            else
+                color = glm::vec3(0.98f, 0.8f, 0.35f);
+            
+            cubeShader->setUniform3f("color", color);
+            
+
+            //we can have model matrix be calculated once in exchange for memory
+            glm::vec3 pos = ConvertIndexToVec3(i);
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3((float)pos.x, -(float)pos.y + size, pos.z));
+            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+            cubeShader->setUniform4m("model", model);
+            geometry->drawCubeManual();
+        }
     } 
 }
 
 
-void FallingSandHelper::GetNeighboarhood(unsigned int& index)
+void SequentialFallingSand::GetNeighboarhood(unsigned int& index)
 {
     //printf("index: %d value: %d\n", index, space[index]);
     if (space[index] == _SAND)
@@ -156,7 +181,7 @@ void FallingSandHelper::GetNeighboarhood(unsigned int& index)
     }
 }
 #pragma region Checks
-bool FallingSandHelper::CheckBelow(const size_t& index)
+bool SequentialFallingSand::CheckBelow(const size_t& index)
 {
     //check bot
     unsigned int check_index = index + size_sq;
@@ -168,7 +193,7 @@ bool FallingSandHelper::CheckBelow(const size_t& index)
     }
     return false;
 }
-void FallingSandHelper::CheckFront(const size_t& index, const size_t& swap)
+void SequentialFallingSand::CheckFront(const size_t& index, const size_t& swap)
 {
     if (index % size == size - 1)
         return;
@@ -176,7 +201,7 @@ void FallingSandHelper::CheckFront(const size_t& index, const size_t& swap)
     if (space[swap] > space[check])
         MakeChange(swap, check);
 }
-void FallingSandHelper::CheckBack(const size_t& index, const size_t& swap)
+void SequentialFallingSand::CheckBack(const size_t& index, const size_t& swap)
 {
     if (index % size == 0)
         return;
@@ -186,7 +211,7 @@ void FallingSandHelper::CheckBack(const size_t& index, const size_t& swap)
         MakeChange(swap, check);
 }
 
-void FallingSandHelper::CheckLeft(const size_t& index, const size_t& swap)
+void SequentialFallingSand::CheckLeft(const size_t& index, const size_t& swap)
 {
     unsigned int left_index = index - size;
     if (index / size_sq == left_index / size_sq)
@@ -198,7 +223,7 @@ void FallingSandHelper::CheckLeft(const size_t& index, const size_t& swap)
         }
     }
 }
-void FallingSandHelper::CheckRight(const size_t& index, const size_t& swap)
+void SequentialFallingSand::CheckRight(const size_t& index, const size_t& swap)
 {
     unsigned int right_index = index + size;
     if (right_index >= size_total)
@@ -214,42 +239,38 @@ void FallingSandHelper::CheckRight(const size_t& index, const size_t& swap)
     }
 }
 #pragma endregion
-unsigned int FallingSandHelper::GetStartingCells() const
-{
-    return starting_cells;
-}
 
-void FallingSandHelper::SetPixel(const glm::uvec3& pos, const unsigned int& type)
+void SequentialFallingSand::SetPixel(const glm::uvec3& pos, const unsigned int& type)
 {
     space[ConvertVec3ToIndex(pos)] = type;
 }
 
-unsigned int FallingSandHelper::ClampInSpace(unsigned int value)
+unsigned int SequentialFallingSand::ClampInSpace(unsigned int value)
 {
     
     return std::max(0, (int)std::min(value, size-1));
 }
 
 //might break because uvec are 4 byte and return is 8 byte
-size_t FallingSandHelper::ConvertVec3ToIndex(const glm::uvec3& pos) {
+size_t SequentialFallingSand::ConvertVec3ToIndex(const glm::uvec3& pos) {
     
     return ClampInSpace(pos.x) + (ClampInSpace(pos.y) * size_sq) + (ClampInSpace(pos.z) * size);
 }
 
 //might break because uvec are 4 byte and return is 8 byte
-glm::uvec3 FallingSandHelper::ConvertIndexToVec3(const size_t& index) {
+glm::uvec3 SequentialFallingSand::ConvertIndexToVec3(const size_t& index) {
     int y = index / size_sq;
     int y_sub = (y * size_sq);
     int z = (index - y_sub) / size;
     int x = (index - (y_sub)-(z * size));
     return glm::uvec3(x, y, z);
 }
-void FallingSandHelper::MakeChange(const size_t& from, const size_t& to)
+void SequentialFallingSand::MakeChange(const size_t& from, const size_t& to)
 {
     space_changes.emplace_back(to, from);
 }
 
-void FallingSandHelper::CommitChanges()
+void SequentialFallingSand::CommitChanges()
 {
     size_t change_count = space_changes.size();
     //this part is not needed
@@ -276,11 +297,18 @@ void FallingSandHelper::CommitChanges()
 
     space_changes.clear();
 }
-unsigned int FallingSandHelper::GetCellCount() const
+unsigned int SequentialFallingSand::GetCellCount() const
 {
     return cur_cells;
 }
-unsigned int FallingSandHelper::GetSpaceSize() const
+
+void SequentialFallingSand::RenderSpace(const glm::mat4& view, const glm::mat4& projection)
 {
-    return size;
+    geometry->bindCube();
+    cubeShader->use();
+    cubeShader->setUniform3f("lightPos", lightPos);
+    cubeShader->setUniform4m("projection", projection);
+    cubeShader->setUniform4m("view", view);
+
+    IterateThroughSpace();
 }

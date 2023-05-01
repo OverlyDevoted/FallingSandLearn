@@ -56,7 +56,7 @@ bool checkRight(uint gid, uint below)
 }
 void main()
 {
-	uint gid = gl_GlobalInvocationID.x;
+	uint gid = gl_GlobalInvocationID.x; // the cell which is currently invoked
 
 	if (state[gid].state == 0)
 		return;

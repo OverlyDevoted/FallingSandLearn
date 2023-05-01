@@ -54,10 +54,16 @@
     <ClCompile Include="MeshGeometry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FallingSandHelper.cpp">
+    <ClCompile Include="SequentialFallingSand.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ParallelFallingSand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SimulationHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -98,8 +104,20 @@
     <ClInclude Include="MeshGeometry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FallingSandHelper.h">
+    <ClInclude Include="SequentialFallingSand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="IFallingSand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ParallelFallingSand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgui.ini" />
   </ItemGroup>
 </Project>
