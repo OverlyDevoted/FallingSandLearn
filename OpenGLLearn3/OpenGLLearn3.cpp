@@ -132,8 +132,8 @@ int main()
     Shader unlitShader = Shader("src/res/shaders/unlitVertex.glsl", "src/res/shaders/unlitFragment.glsl");
     MeshGeometry geometry = MeshGeometry();
     
-    initial_size = 3;
-    isRandom = false;
+    initial_size = 200;
+    isRandom = true;
     sand.InitializeSpace(initial_size, isRandom);
 
     unsigned int supposedCamPos = sand.GetSpaceSize();
@@ -165,8 +165,8 @@ int main()
         GLfloat x, y, z; // positions
         GLint state;
     };
-    
-    unsigned int volume = initial_size * initial_size * initial_size;
+    unsigned int size_sq = initial_size * initial_size;
+    unsigned int volume = size_sq * initial_size;
     printf("volume: %d\n", volume);
     GLuint posSSbo; // shader storage buffer object for storing the positions
     glGenBuffers(1, &posSSbo);
@@ -186,7 +186,7 @@ int main()
                 points[counter].z = initial_size - 1 - k;
                 if (isRandom)
                     points[counter].state = rand() % 2;
-                else if (counter == 0 || counter == initial_size*initial_size) 
+                else if (counter == 26 - (initial_size*2) || counter == 25 - (initial_size * 2) || counter == 17 - (initial_size * 2))
                 {
                     points[counter].state = 1;
                 }
@@ -234,10 +234,11 @@ int main()
     glVertexAttribPointer(5, 2, GL_INT, GL_FALSE, 0, 0);
     #pragma endregion
 #pragma endregion 
+#pragma region Compute shader programs
     Shader computeIterationShader   = Shader("src/res/shaders/compute/computeSand.glsl");
     Shader computeSwapsShader       = Shader("src/res/shaders/compute/computeSwaps.glsl");
     Shader forComputeRes            = Shader("src/res/shaders/compute/computeVert.glsl", "src/res/shaders/compute/computeFrag.glsl");
-    
+#pragma endregion
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
@@ -394,6 +395,7 @@ int main()
             //sand.IterateSpace();
             computeIterationShader.use();
             computeIterationShader.setUniform1uint("size", initial_size);
+            computeIterationShader.setUniform1uint("size_sq", size_sq);
             computeIterationShader.setUniform1uint("volume", volume);
             glDispatchCompute(volume, 1, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
