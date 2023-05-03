@@ -37,7 +37,6 @@ int simulationWidth = WIDTH, simulationHeigth = HEIGTH;
 bool firstMouse = true;
 bool isLeftMouseHolding = false;
 bool isTabHolding;
-int sandType = _SAND;
 
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch = -45.0f;
@@ -67,8 +66,9 @@ glm::vec3 calc_mouse();
 #pragma region Falling sand variables
 
 SimulationHelper sand = SimulationHelper();
-unsigned int initial_size = 4;
-bool isRandom = false;
+unsigned int initial_size = 300;
+bool isRandom = true;
+SandType sandType = _SEQUENTIAL_SAND;
 
 #pragma endregion
 
@@ -114,8 +114,6 @@ int main()
     glfwSetMouseButtonCallback(window, mouse_click_callback);
     srand(time(0));
 
-
-
 #pragma region IMGUI
     //IMGUI setup
     // Setup Dear ImGui context
@@ -133,7 +131,7 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
 #pragma endregion
-    sand.InitializeSpace(10, true);
+    sand.InitializeSpace((SandType)sandType, initial_size, isRandom);
 
 #pragma region Simulation Settings
     //shader program object setup
@@ -146,104 +144,28 @@ int main()
     cameraPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     glm::vec3 lightPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     float fps = 0.0f;
-    float timer = 0.0f;
+    //float timer = 0.0f;
     float iterateWait = 10000.0f;
     float iterateStart = 0.0f;
     float iterateEnd = 0.0f;
     
-    float renderTime = 0.0f;
+   
     float iterationTime = 0.0f;
     float fpsCount = 0.0;
-    size_t iterationCount = 0;
-    size_t maxIterations = 0; 
-#pragma endregion
-#pragma region Compute Shader Data Setup
-    //compute shader setup
-    #pragma region Cells buffer
-    struct pos
-    {
-        GLfloat x, y, z; // positions
-        GLint state;
-    };
-    unsigned int size_sq = initial_size * initial_size;
-    unsigned int volume = size_sq * initial_size;
-    printf("volume: %d\n", volume);
-    GLuint posSSbo; // shader storage buffer object for storing the positions
-    glGenBuffers(1, &posSSbo);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, posSSbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, volume * sizeof(struct pos), NULL, GL_STATIC_DRAW);
-    GLint bufMask = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
-    struct pos* points = (struct pos*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, volume * sizeof(struct pos), bufMask);
-    int counter = 0;
-    for (int i = 0; i < initial_size; i++)
-    {
-        for (int j = 0; j < initial_size; j++)
-        {
-            for (int k = 0; k < initial_size; k++)
-            {
-                points[counter].x = j;
-                points[counter].y = initial_size - 1 - i;
-                points[counter].z = initial_size - 1 - k;
-                if (isRandom)
-                    points[counter].state = rand() % 2;
-                else if (counter == 26 - (initial_size*2) || counter == 25 - (initial_size * 2) || counter == 17 - (initial_size * 2))
-                {
-                    points[counter].state = 1;
-                }
-                else
-                    points[counter].state = 0; 
-                //printf("index %d: x: %d, y: %d, z: %d\n", counter, j, i, k);
-                counter++;
-            }
-        }
-    }
-    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, posSSbo);
-    glEnableVertexAttribArray(4);
-    glBindBuffer(GL_ARRAY_BUFFER, posSSbo);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    #pragma endregion 
-    #pragma region swapsBuffer
-    struct swaps {
-        GLint from;
-        GLint to;
-    };
-    GLuint swapSSbo; // shader storage buffer object for storing the positions
-    glGenBuffers(1, &swapSSbo);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, swapSSbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, volume * sizeof(swaps), NULL, GL_STATIC_DRAW);
     
-    struct swaps* swaps = (struct swaps*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, volume * sizeof(struct swaps), bufMask);
-    counter = 0;
-    for (int i = 0; i < initial_size; i++)
-    {
-        for (int j = 0; j < initial_size; j++)
-        {
-            for (int k = 0; k < initial_size; k++)
-            {
-                swaps[counter].from = -1;
-                swaps[counter].to = -1;
-                counter++;
-            }
-        }
-    }
-    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, swapSSbo);
-    glEnableVertexAttribArray(5);
-    glBindBuffer(GL_ARRAY_BUFFER, swapSSbo);
-    glVertexAttribPointer(5, 2, GL_INT, GL_FALSE, 0, 0);
-    #pragma endregion
-#pragma endregion 
-#pragma region Compute Shader Program setup
-    Shader computeIterationShader   = Shader("src/res/shaders/compute/computeSand.glsl");
-    Shader computeSwapsShader       = Shader("src/res/shaders/compute/computeSwaps.glsl");
-    Shader forComputeRes            = Shader("src/res/shaders/compute/computeVert.glsl", "src/res/shaders/compute/computeFrag.glsl");
-#pragma endregion
+    int iterationCount = 0;
+    int maxIterations = 0; 
+    
+    bool iterate = false;
 
+    GLuint64 gpuTime = 0;
+    float cpuTime = 0.0f;
+#pragma endregion
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
     #pragma region Time
+        
         float currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -268,16 +190,40 @@ int main()
         
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projection = glm::perspective(glm::radians(50.0f), (float)(WIDTH / HEIGTH), 0.1f, 1000.0f);
-        
-        sand.RenderSpace(view, projection);
 
+
+        //sand.RenderSpace(view, projection);
         ImGui::Begin("Simulation control");
+        
+        if (iterate && iterationCount < maxIterations)
+        {
+            GLuint query;
+            glGenQueries(1, &query);
+            glBeginQuery(GL_TIME_ELAPSED, query);
+            float cpuStart = (float)glfwGetTime();
+            //should return time spend cpu(sequential) or gpu(parallel)
+            sand.IterateSpace();
+            float cpuEnd = (float)glfwGetTime();
+            glEndQuery(GL_TIME_ELAPSED);
+            glGetQueryObjectui64v(query, GL_QUERY_RESULT, &gpuTime);
+            cpuTime = cpuEnd - cpuStart;
+
+            iterationCount++;
+            if (iterationCount == maxIterations)
+            {
+                iterationCount = 0;
+                iterate = false;
+            }
+        }
+
         ImGui::Text("Camera pos: x:%f y:%f z:%f", cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
+        ImGui::Text("GPU time in milliseconds: %f\n", gpuTime / 1000000.0);
+        ImGui::Text("CPU time in milliseconds: %f\n", cpuTime * 1000.0f);
+        ImGui::InputInt("Iterations", &maxIterations, 1,100);
         if (ImGui::Button("Iterate", ImVec2(70, 30)))
         {
-            sand.IterateSpace();
-            timer = 0.0f;
+            iterate = true;
         }
         ImGui::End();
         ImGui::Render();
@@ -294,25 +240,23 @@ int main()
         
     #pragma endregion
         
-        if (maxIterations != 0 && maxIterations-1 < iterationCount)
-            glfwSetWindowShouldClose(window, true);
+        //if (maxIterations != 0 && maxIterations-1 < iterationCount)
+          //  glfwSetWindowShouldClose(window, true);
 
         //checks if any event have been triggered (i/o inputs)
         glfwPollEvents();
     }
 
-    glDeleteBuffers(1, &posSSbo);
-    glDeleteBuffers(1, &swapSSbo);
 
     printf("\nSIMULATION RESULTS:\n");
 
     printf("World size: %d\n", initial_size);
-    printf("Is random: %d\n", isRandom);
+    printf(isRandom?"Is random: true":"Is random: false");
     //printf("Cell count at the end %d\n", sand.GetCellCount());
-    printf("Iterations: %d \n", iterationCount);
-    printf("Average render time: %f ms\n", renderTime / iterationCount);
-    printf("Average iteration time: %f ms\n", iterationTime / iterationCount);
-    printf("Average fps: %f\n\n", fpsCount / iterationCount);
+    //printf("Iterations: %d \n", iterationCount);
+    //printf("Average render time: %f ms\n", renderTime / iterationCount);
+    //printf("Average iteration time: %f ms\n", iterationTime / iterationCount);
+    //printf("Average fps: %f\n\n", fpsCount / iterationCount);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

@@ -20,7 +20,7 @@ void SequentialFallingSand::InitializeSpace(const unsigned int& size, const bool
     unsigned int use_size = size;
     if (size < size_min)
     {
-        std::cout << "Couldn't create simulation space. Defined dimensions are too small. Creating minimum size space." << std::endl;
+        printf("Couldn't create simulation space. Defined dimensions are too small. Creating minimum size space.");
         use_size = size_min;
     }
     lightPos = glm::vec3((float)use_size / 2, (float)use_size, (float)use_size);

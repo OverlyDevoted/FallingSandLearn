@@ -5,12 +5,16 @@
 #include "ParallelFallingSand.h"
 #include "SequentialFallingSand.h"
 
+enum SandType {
+	_SEQUENTIAL_SAND,
+	_PARALLEL_SAND
+};
 class SimulationHelper
 {
 public:
 	SimulationHelper();
 	~SimulationHelper();
-	void InitializeSpace(const unsigned int& size, const bool& random);
+	void InitializeSpace(SandType sim_type, const unsigned int& size, const bool& random);
 	void RenderSpace(const glm::mat4& view, const glm::mat4& projection);
 	void IterateSpace();
 	unsigned int GetSpaceSize() const;
@@ -18,9 +22,4 @@ public:
 
 private:
 	IFallingSand* sand;
-};
-
-enum SimType {
-	_SEQUENTIAL,
-	_PARALLEL
 };
