@@ -11,7 +11,7 @@ SimulationHelper::~SimulationHelper()
 
 void SimulationHelper::InitializeSpace(SandType sim_type, const unsigned int& size, const bool& random)
 {
-	if(sim_type == _PARALLEL_SAND)
+	if(sim_type == SandType::_PARALLEL_SAND)
 		sand = new ParallelFallingSand();
 	else
 		sand = new SequentialFallingSand();
@@ -40,4 +40,9 @@ unsigned int SimulationHelper::GetSpaceSize() const
 unsigned int SimulationHelper::GetStartingCells() const
 {
 	return sand->GetStartingCells();
+}
+
+unsigned int SimulationHelper::GetSizeMin() const
+{
+	return sand->GetSizeMin();
 }

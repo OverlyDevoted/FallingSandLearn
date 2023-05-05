@@ -40,6 +40,7 @@ bool firstMouse = true;
 bool isLeftMouseHolding = false;
 bool isTabHolding;
 bool iteratedOnce = false;
+bool generatedOnce = false;
 bool doOnce = false;
 
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
@@ -71,9 +72,9 @@ void export_data();
 
 SimulationHelper sand = SimulationHelper();
 
-unsigned int initial_size = 10;
+int initial_size = 10;
 bool isRandom = true;
-SandType sandType = _SEQUENTIAL_SAND;
+int sandType = (int)SandType::_SEQUENTIAL_SAND;
 bool render = false;
 
 #pragma endregion
@@ -216,43 +217,48 @@ int main()
         #pragma region Simulation stat UI render
         ImGui::Text("Camera pos: x:%f y:%f z:%f", cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
-        ImGui::Checkbox("Renderer", &render);
-        ImGui::InputInt("Iterations", &maxIterations, 1,100);
-        
-        if (ImGui::Button("Iterate", ImVec2(70, 30)))
+        std::string text = sandType == (int)SandType::_PARALLEL_SAND ? "Parallel" : "Sequential";
+        ImGui::SliderInt("Simulation type", &sandType, 0, 1, text.c_str());
+        ImGui::InputInt("Space size", &initial_size, 1, 10);
+        if (ImGui::Button("Generate", ImVec2(70, 30)))
         {
-            if (iterate)
-                continue;
-
-            iterate = true;
-            iterationCount = 0;
-            iterationPlot = new float[maxIterations];
-            for (int i = 0; i < maxIterations; i++)
-            {
-                iterationPlot[i] = 0.0f;
-                
-            }
-            //if (iteratedOnce)
-                //sand.DeallocateSpace();
-
+            generatedOnce = true;
             sand.InitializeSpace((SandType)sandType, initial_size, isRandom);
         }
-        
-        if (iterationCount == maxIterations)
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, IM_COL32(0, 255, 0, 255));
-        ImGui::ProgressBar(iterationCount != 0?((float)(iterationCount + 1) / (float)maxIterations):0.0f);
-        if (iterationCount == maxIterations)
-            ImGui::PopStyleColor();
-
-        if (iteratedOnce)
+        if (generatedOnce)
         {
-            if (ImPlot::BeginPlot("Falling Sand performance"))
+            ImGui::Checkbox("Renderer", &render);
+            ImGui::InputInt("Iterations", &maxIterations, 1,100);
+            if (ImGui::Button("Iterate", ImVec2(70, 30)))
             {
-                ImPlot::PlotLine("Iteration time in ms", iterationPlot, maxIterations);
-                ImPlot::EndPlot();
+                if (iterate)
+                    continue;
+
+                iterate = true;
+                iterationCount = 0;
+                iterationPlot = new float[maxIterations];
+                for (int i = 0; i < maxIterations; i++)
+                {
+                    iterationPlot[i] = 0.0f;
+                
+                }
+            }
+        
+            if (iterationCount == maxIterations)
+                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, IM_COL32(0, 255, 0, 255));
+            ImGui::ProgressBar(iterationCount != 0?((float)(iterationCount + 1) / (float)maxIterations):0.0f);
+            if (iterationCount == maxIterations)
+                ImGui::PopStyleColor();
+
+            if (iteratedOnce)
+            {
+                if (ImPlot::BeginPlot("Falling Sand performance"))
+                {
+                    ImPlot::PlotLine("Iteration time in ms", iterationPlot, maxIterations);
+                    ImPlot::EndPlot();
+                }
             }
         }
-
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

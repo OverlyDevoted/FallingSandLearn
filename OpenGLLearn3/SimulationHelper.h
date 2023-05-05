@@ -5,9 +5,9 @@
 #include "ParallelFallingSand.h"
 #include "SequentialFallingSand.h"
 
-enum SandType {
-	_SEQUENTIAL_SAND,
-	_PARALLEL_SAND
+enum class SandType : int {
+	_SEQUENTIAL_SAND = 0,
+	_PARALLEL_SAND = 1
 };
 class SimulationHelper
 {
@@ -20,6 +20,7 @@ public:
 	unsigned int GetSpaceSize() const;
 	unsigned int GetStartingCells() const;
 	void DeallocateSpace();
+	unsigned int GetSizeMin() const;
 private:
 	IFallingSand* sand;
 };

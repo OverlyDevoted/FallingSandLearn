@@ -9,6 +9,7 @@ public:
 	virtual unsigned int GetSpaceSize() const { return size; };
 	virtual unsigned int GetStartingCells() const { return starting_cells; };
 	virtual unsigned int GetCellCount() const = 0;
+	virtual unsigned int GetSizeMin() const { return size_min; };
 	virtual void RenderSpace(const glm::mat4& view, const glm::mat4& projection) = 0;
 	virtual void DeallocateSpace() = 0;
 protected:

@@ -29,16 +29,18 @@ void ParallelFallingSand::DeallocateSpace()
 }
 void ParallelFallingSand::InitializeSpace(const unsigned int& size, const bool& random)
 {
+    printf("Generating parallel space.\n");
     unsigned int use_size = size;
     if (size < size_min)
     {
-        printf("\nCouldn't create simulation space. Defined dimensions are too small. Creating minimum size space.\n");
+        printf("\nCouldn't create simulation space. Defined dimensions are too small. Creating minimum size space.");
         use_size = size_min;
     }
 #pragma region Cells buffer
     this->size = use_size;
     size_sq = use_size * use_size;
     size_total = size_sq * use_size;
+    printf("\nGenerating %d number of cells.", size_total);
     struct swaps {
         GLint from;
         GLint to;
@@ -53,7 +55,7 @@ void ParallelFallingSand::InitializeSpace(const unsigned int& size, const bool& 
     glBufferData(GL_SHADER_STORAGE_BUFFER, size_total * sizeof(struct pos), NULL, GL_STATIC_DRAW);
     GLint bufMask = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
     struct pos* points = (struct pos*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, size_total* (sizeof(GLfloat)*3+sizeof(GLint)), bufMask);
-    printf("\nGenerating %d kb sized buffer of struct pos (3 floats and 1 int)\n", (size_total* (sizeof(GLfloat) * 3 + sizeof(GLint))) / 1000);
+    printf("\nGenerating %d kb sized buffer of struct pos (3 floats and 1 int)", (size_total* (sizeof(GLfloat) * 3 + sizeof(GLint))) / 1000);
     
     int counter = 0;
     for (int i = 0; i < use_size; i++)
@@ -80,7 +82,7 @@ void ParallelFallingSand::InitializeSpace(const unsigned int& size, const bool& 
     }
     if (glUnmapBuffer(GL_SHADER_STORAGE_BUFFER) == GL_TRUE)
     {
-        printf("Successfully unmapped positions buffer data\n");
+        printf("Successfully unmapped positions buffer data");
     }
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, *posSSBO);
 
@@ -89,7 +91,7 @@ void ParallelFallingSand::InitializeSpace(const unsigned int& size, const bool& 
     glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, (void *)0);
 #pragma endregion 
 #pragma region swapsBuffer
-    printf("\nGenerating %d kb sized buffer of struct swap (2 uint)\n", (size_total* sizeof(GLint) * 2) / 1000);
+    printf("\nGenerating %d kb sized buffer of struct swap (2 uint)", (size_total* sizeof(GLint) * 2) / 1000);
 
     glGenBuffers(1, swapSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, *swapSSBO);

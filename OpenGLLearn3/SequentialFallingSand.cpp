@@ -19,7 +19,7 @@ void SequentialFallingSand::InitializeSpace(const unsigned int& size, const bool
     unsigned int use_size = size;
     if (size < size_min)
     {
-        printf("Couldn't create simulation space. Defined dimensions are too small. Creating minimum size space.");
+        printf("\nCouldn't create simulation space. Defined dimensions are too small. Creating minimum size space.");
         use_size = size_min;
     }
     lightPos = glm::vec3((float)use_size / 2, (float)use_size, (float)use_size);
@@ -28,6 +28,7 @@ void SequentialFallingSand::InitializeSpace(const unsigned int& size, const bool
 
 void SequentialFallingSand::CreateSpace(const int& new_size, const bool& random)
 {
+    printf("\nGenerating sequential space.");
     starting_cells = 0;
     // set the random seed
     std::srand(std::time(nullptr));
@@ -36,7 +37,7 @@ void SequentialFallingSand::CreateSpace(const int& new_size, const bool& random)
     size_sq = new_size * new_size;
     size_total = size_sq * new_size;
     space = new unsigned char [size_total];
-    printf("\nGenerating %d number of cells.\n", size * size * size);
+    printf("\nGenerating %d number of cells.\n", size_total);
     for (unsigned int i = 0; i < size_total; i++) {
         if (random)
         {
