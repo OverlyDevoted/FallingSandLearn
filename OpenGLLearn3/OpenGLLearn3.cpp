@@ -40,6 +40,7 @@ bool firstMouse = true;
 bool isLeftMouseHolding = false;
 bool isTabHolding;
 bool iteratedOnce = false;
+bool doOnce = false;
 
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch = -45.0f;
@@ -70,10 +71,10 @@ void export_data();
 
 SimulationHelper sand = SimulationHelper();
 
-unsigned int initial_size = 50;
+unsigned int initial_size = 10;
 bool isRandom = true;
-SandType sandType = _PARALLEL_SAND;
-bool render = true;
+SandType sandType = _SEQUENTIAL_SAND;
+bool render = false;
 
 #pragma endregion
 
@@ -137,13 +138,11 @@ int main()
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
-#pragma endregion
-    
-
-#pragma region Simulation Settings
+#pragma endregion  
+#pragma region Additional Simulation Variables
     //shader program object setup
 
-    sand.InitializeSpace((SandType)sandType, initial_size, isRandom);
+    
     simulationWidth = initial_size;
     simulationHeigth = initial_size;
     // cameraPos.y -= supposedCamPos.y - 1;
@@ -161,14 +160,13 @@ int main()
     int iterationCount = 0;
     int maxIterations = 0; 
 
-    
     float* iterationPlot = new float();
     
 #pragma endregion
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
     {
-    #pragma region Time
+        #pragma region Loop time calculations
         
         float currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -176,13 +174,11 @@ int main()
         fps = 1.0f / deltaTime;
         fpsCount += fps;
     #pragma endregion 
-
-    #pragma region Inputs
+        #pragma region Input listener
         processInput(window);
         mousePos = calc_mouse();
     #pragma endregion
-
-    #pragma region Render
+        #pragma region Simulation loop
         //clear color buffers
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -196,22 +192,19 @@ int main()
         glm::mat4 projection = glm::perspective(glm::radians(50.0f), (float)(WIDTH / HEIGTH), 0.1f, 1000.0f);
 
         if(render)
-        sand.RenderSpace(view, projection);
-        ImGui::Begin("Simulation control");
+            sand.RenderSpace(view, projection);
         
+        ImGui::Begin("Simulation control");
         if (iterate && iterationCount < maxIterations)
         {
             if (!iteratedOnce)
                 iteratedOnce = true;
 
-           
-           
             //should return time spend cpu(sequential) or gpu(parallel)
             float time = sand.IterateSpace();
             
             iterationPlot[iterationCount] = time;
             
-
             iterationCount++;
             if (iterationCount == maxIterations)
             {
@@ -220,7 +213,7 @@ int main()
                 //sand.DeallocateSpace();
             }
         }
-#pragma region Simulation stat UI render
+        #pragma region Simulation stat UI render
         ImGui::Text("Camera pos: x:%f y:%f z:%f", cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
         ImGui::Checkbox("Renderer", &render);
@@ -228,20 +221,29 @@ int main()
         
         if (ImGui::Button("Iterate", ImVec2(70, 30)))
         {
+            if (iterate)
+                continue;
+
             iterate = true;
             iterationCount = 0;
             iterationPlot = new float[maxIterations];
             for (int i = 0; i < maxIterations; i++)
             {
                 iterationPlot[i] = 0.0f;
+                
             }
+            //if (iteratedOnce)
+                //sand.DeallocateSpace();
+
+            sand.InitializeSpace((SandType)sandType, initial_size, isRandom);
         }
         
-        if(iterationCount==maxIterations)
+        if (iterationCount == maxIterations)
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, IM_COL32(0, 255, 0, 255));
         ImGui::ProgressBar(iterationCount != 0?((float)(iterationCount + 1) / (float)maxIterations):0.0f);
         if (iterationCount == maxIterations)
             ImGui::PopStyleColor();
+
         if (iteratedOnce)
         {
             if (ImPlot::BeginPlot("Falling Sand performance"))
@@ -250,34 +252,21 @@ int main()
                 ImPlot::EndPlot();
             }
         }
-        
 
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-#pragma endregion 
+        #pragma endregion 
     #pragma endregion
         //front buffer contains current screen image, while all other draw functions are performed onto the second buffer which is then swapped with this command after drawing all the geometries
         //this prevents user from seeing artifacts from drawn geometries at runtime
         glfwSwapBuffers(window);
-    #pragma endregion 
-
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-    #pragma region Iterate space by timer
         
-    #pragma endregion
-        
-        //if (maxIterations != 0 && maxIterations-1 < iterationCount)
-          //  glfwSetWindowShouldClose(window, true);
-
-        //checks if any event have been triggered (i/o inputs)
         glfwPollEvents();
     }
 
-
     printf("\nSIMULATION RESULTS:\n");
-
     printf("World size: %d\n", initial_size);
     printf(isRandom?"Is random: true":"Is random: false");
     //printf("Cell count at the end %d\n", sand.GetCellCount());
@@ -341,8 +330,6 @@ void processInput(GLFWwindow* window)
     {
         isTabHolding = false;
     }
-
-    
 }
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -392,7 +379,6 @@ void mouse_click_callback(GLFWwindow* window, int button, int action, int mods)
             //flipped because that's how cells are stored in the array
             //std::cout << std::floor(pos.y) << " " << std::floor(pos.x) << std::endl;
             isLeftMouseHolding = true;
-
         }
         else if (action == GLFW_RELEASE)
         {
