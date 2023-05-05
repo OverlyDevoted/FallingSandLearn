@@ -1,6 +1,8 @@
 #include "src/vendor/imgui/imgui.h"
 #include "src/vendor/imgui/imgui_impl_glfw.h"
 #include "src/vendor/imgui/imgui_impl_opengl3.h"
+#include "src/vendor/imgui/implot.h"
+#include "src/vendor/imgui/implot_internal.h"
 // OpenGLLearn3.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 #include <glad/glad.h>
@@ -37,6 +39,7 @@ int simulationWidth = WIDTH, simulationHeigth = HEIGTH;
 bool firstMouse = true;
 bool isLeftMouseHolding = false;
 bool isTabHolding;
+bool iteratedOnce = false;
 
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch = -45.0f;
@@ -60,15 +63,17 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 glm::vec3 calc_mouse();
-
+void export_data();
 #pragma endregion 
 
 #pragma region Falling sand variables
 
 SimulationHelper sand = SimulationHelper();
-unsigned int initial_size = 300;
+
+unsigned int initial_size = 50;
 bool isRandom = true;
-SandType sandType = _SEQUENTIAL_SAND;
+SandType sandType = _PARALLEL_SAND;
+bool render = true;
 
 #pragma endregion
 
@@ -119,10 +124,12 @@ int main()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImPlot::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();(void)io;
+    
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
+    
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -131,35 +138,32 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
 #pragma endregion
-    sand.InitializeSpace((SandType)sandType, initial_size, isRandom);
+    
 
 #pragma region Simulation Settings
     //shader program object setup
 
-    unsigned int supposedCamPos = sand.GetSpaceSize();
-    simulationWidth = supposedCamPos;
-    simulationHeigth = supposedCamPos;
+    sand.InitializeSpace((SandType)sandType, initial_size, isRandom);
+    simulationWidth = initial_size;
+    simulationHeigth = initial_size;
     // cameraPos.y -= supposedCamPos.y - 1;
-    const unsigned int starting_cell = sand.GetStartingCells();
     cameraPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     glm::vec3 lightPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     float fps = 0.0f;
-    //float timer = 0.0f;
-    float iterateWait = 10000.0f;
+
     float iterateStart = 0.0f;
     float iterateEnd = 0.0f;
-    
-   
     float iterationTime = 0.0f;
+    bool iterate = false;
+    
     float fpsCount = 0.0;
     
     int iterationCount = 0;
     int maxIterations = 0; 
-    
-    bool iterate = false;
 
-    GLuint64 gpuTime = 0;
-    float cpuTime = 0.0f;
+    
+    float* iterationPlot = new float();
+    
 #pragma endregion
     //render loop, keeps the program open until we tell it to close
     while (!glfwWindowShouldClose(window))
@@ -191,43 +195,67 @@ int main()
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projection = glm::perspective(glm::radians(50.0f), (float)(WIDTH / HEIGTH), 0.1f, 1000.0f);
 
-
-        //sand.RenderSpace(view, projection);
+        if(render)
+        sand.RenderSpace(view, projection);
         ImGui::Begin("Simulation control");
         
         if (iterate && iterationCount < maxIterations)
         {
-            GLuint query;
-            glGenQueries(1, &query);
-            glBeginQuery(GL_TIME_ELAPSED, query);
-            float cpuStart = (float)glfwGetTime();
+            if (!iteratedOnce)
+                iteratedOnce = true;
+
+           
+           
             //should return time spend cpu(sequential) or gpu(parallel)
-            sand.IterateSpace();
-            float cpuEnd = (float)glfwGetTime();
-            glEndQuery(GL_TIME_ELAPSED);
-            glGetQueryObjectui64v(query, GL_QUERY_RESULT, &gpuTime);
-            cpuTime = cpuEnd - cpuStart;
+            float time = sand.IterateSpace();
+            
+            iterationPlot[iterationCount] = time;
+            
 
             iterationCount++;
             if (iterationCount == maxIterations)
             {
-                iterationCount = 0;
+                
                 iterate = false;
+                //sand.DeallocateSpace();
             }
         }
-
+#pragma region Simulation stat UI render
         ImGui::Text("Camera pos: x:%f y:%f z:%f", cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
-        ImGui::Text("GPU time in milliseconds: %f\n", gpuTime / 1000000.0);
-        ImGui::Text("CPU time in milliseconds: %f\n", cpuTime * 1000.0f);
+        ImGui::Checkbox("Renderer", &render);
         ImGui::InputInt("Iterations", &maxIterations, 1,100);
+        
         if (ImGui::Button("Iterate", ImVec2(70, 30)))
         {
             iterate = true;
+            iterationCount = 0;
+            iterationPlot = new float[maxIterations];
+            for (int i = 0; i < maxIterations; i++)
+            {
+                iterationPlot[i] = 0.0f;
+            }
         }
+        
+        if(iterationCount==maxIterations)
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, IM_COL32(0, 255, 0, 255));
+        ImGui::ProgressBar(iterationCount != 0?((float)(iterationCount + 1) / (float)maxIterations):0.0f);
+        if (iterationCount == maxIterations)
+            ImGui::PopStyleColor();
+        if (iteratedOnce)
+        {
+            if (ImPlot::BeginPlot("Falling Sand performance"))
+            {
+                ImPlot::PlotLine("Iteration time in ms", iterationPlot, maxIterations);
+                ImPlot::EndPlot();
+            }
+        }
+        
+
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#pragma endregion 
     #pragma endregion
         //front buffer contains current screen image, while all other draw functions are performed onto the second buffer which is then swapped with this command after drawing all the geometries
         //this prevents user from seeing artifacts from drawn geometries at runtime
@@ -259,10 +287,11 @@ int main()
     //printf("Average fps: %f\n\n", fpsCount / iterationCount);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
 
     //good practice is to delete your vao, vbo and shader programs
-
+    
     glfwDestroyWindow(window);
     //terminate glfw session
     glfwTerminate();

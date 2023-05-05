@@ -7,14 +7,14 @@ class ParallelFallingSand : public IFallingSand
 {
 public:
 	ParallelFallingSand();
-	~ParallelFallingSand();
+	~ParallelFallingSand() override;
 	void InitializeSpace(const unsigned int& size, const bool& random) override;
-	void IterateSpace() override;
+	float IterateSpace() override;
 	unsigned int GetCellCount() const override;
 	void RenderSpace(const glm::mat4& view, const glm::mat4& projection) override;
+	void DeallocateSpace() override;
+
 private:
-	void virtual DeallocateSpace() override;
-	
 	unsigned int* posSSBO;
 	unsigned int* swapSSBO;
 	unsigned int* vao;

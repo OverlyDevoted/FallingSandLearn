@@ -16,10 +16,10 @@ public:
 	~SimulationHelper();
 	void InitializeSpace(SandType sim_type, const unsigned int& size, const bool& random);
 	void RenderSpace(const glm::mat4& view, const glm::mat4& projection);
-	void IterateSpace();
+	float IterateSpace();
 	unsigned int GetSpaceSize() const;
 	unsigned int GetStartingCells() const;
-
+	void DeallocateSpace();
 private:
 	IFallingSand* sand;
 };

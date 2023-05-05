@@ -12,13 +12,16 @@ ParallelFallingSand::ParallelFallingSand()
 
 ParallelFallingSand::~ParallelFallingSand()
 {
+
+}
+void ParallelFallingSand::DeallocateSpace()
+{
     determineShader->~Shader();
     swapShader->~Shader();
     renderShader->~Shader();
     glDeleteBuffers(1, posSSBO);
     glDeleteBuffers(1, swapSSBO);
 }
-
 void ParallelFallingSand::InitializeSpace(const unsigned int& size, const bool& random)
 {
     unsigned int use_size = size;
@@ -111,8 +114,13 @@ void ParallelFallingSand::InitializeSpace(const unsigned int& size, const bool& 
    
 }
 
-void ParallelFallingSand::IterateSpace()
+float ParallelFallingSand::IterateSpace()
 {
+    GLint gpuTime;
+    GLuint query;
+    glGenQueries(1, &query);
+    glBeginQuery(GL_TIME_ELAPSED, query);
+
     determineShader->use();
     determineShader->setUniform1uint("size", size);
     determineShader->setUniform1uint("size_sq", size_sq);
@@ -123,6 +131,10 @@ void ParallelFallingSand::IterateSpace()
     swapShader->use();
     glDispatchCompute(size_total, 1, 1);
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+    glEndQuery(GL_TIME_ELAPSED);
+    glGetQueryObjectiv(query, GL_QUERY_RESULT, &gpuTime);
+    return (float)gpuTime / 1000000.0f;
 }
 
 unsigned int ParallelFallingSand::GetCellCount() const
@@ -137,10 +149,4 @@ void ParallelFallingSand::RenderSpace(const glm::mat4& view, const glm::mat4& pr
     renderShader->setUniform4m("view", view);
     
     glDrawArrays(GL_POINTS, 0, size_total);
-}
-
-void ParallelFallingSand::DeallocateSpace()
-{
-	glDeleteBuffers(1, posSSBO);
-	glDeleteBuffers(1, swapSSBO);
 }

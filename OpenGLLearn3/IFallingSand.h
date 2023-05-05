@@ -3,12 +3,14 @@
 class IFallingSand
 {
 public:
+	virtual ~IFallingSand() {};
 	virtual void InitializeSpace(const unsigned int& size, const bool& random) = 0;
-	virtual void IterateSpace() = 0;
+	virtual float IterateSpace() = 0;
 	virtual unsigned int GetSpaceSize() const { return size; };
 	virtual unsigned int GetStartingCells() const { return starting_cells; };
 	virtual unsigned int GetCellCount() const = 0;
 	virtual void RenderSpace(const glm::mat4& view, const glm::mat4& projection) = 0;
+	virtual void DeallocateSpace() = 0;
 protected:
 	unsigned int size_min = 3;
 	unsigned int size;
@@ -16,7 +18,6 @@ protected:
 	unsigned int size_total;
 	unsigned int starting_cells = 0;
 private:
-	void virtual DeallocateSpace() = 0;
 };
 
 enum CellType {

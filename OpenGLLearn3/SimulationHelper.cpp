@@ -17,15 +17,18 @@ void SimulationHelper::InitializeSpace(SandType sim_type, const unsigned int& si
 		sand = new SequentialFallingSand();
 	sand->InitializeSpace(size, random);
 }
-
+void SimulationHelper::DeallocateSpace()
+{
+	sand->DeallocateSpace();
+}
 void SimulationHelper::RenderSpace(const glm::mat4 &view, const glm::mat4 &projection)
 {
 	sand->RenderSpace(view, projection);
 }
 
-void SimulationHelper::IterateSpace()
+float SimulationHelper::IterateSpace()
 {
-	sand->IterateSpace();
+	return sand->IterateSpace();
 }
 
 

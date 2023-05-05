@@ -19,27 +19,27 @@ class SequentialFallingSand : public IFallingSand
 {
 public:
 	SequentialFallingSand();
-	~SequentialFallingSand();
+	~SequentialFallingSand() override;
 	void InitializeSpace(const unsigned int& size, const bool& random) override;
-	void IterateSpace();
+	float IterateSpace();
 	void IterateThroughSpace();
 
 	void GetNeighboarhood(unsigned int& index);
 	void SetPixel(const glm::uvec3& pos, const unsigned int& type);
 	unsigned int GetCellCount() const;
 	void RenderSpace(const glm::mat4& view, const glm::mat4& projection) override;
+	void DeallocateSpace() override;
 
+	
+private:
 	MeshGeometry* geometry;
 	Shader* cubeShader;
 	glm::vec3 lightPos;
-private:
-	
 	unsigned char* space;
 	unsigned int cur_cells = 0;
 	std::vector <std::pair<size_t, size_t>> space_changes;
 
-	void CreateSpace(const int &size, const bool& random);
-	void DeallocateSpace() override;
+	void CreateSpace(const int& size, const bool& random);
 	void MakeChange(const size_t& from, const size_t& to);
 	void CommitChanges();
 	size_t ConvertVec3ToIndex(const glm::uvec3& pos);
@@ -49,9 +49,7 @@ private:
 	void CheckBack(const size_t& index, const size_t& swap);
 	void CheckLeft(const size_t& index, const size_t& swap);
 	void CheckRight(const size_t& index, const size_t& swap);
-	//not really here but needed
+	//not really for this class, but needed
 	unsigned int ClampInSpace(unsigned int value);
-
-	
 };
 //cells with higher value will replace lower value cells 

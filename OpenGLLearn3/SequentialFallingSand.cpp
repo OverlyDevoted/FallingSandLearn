@@ -10,8 +10,7 @@ SequentialFallingSand::SequentialFallingSand()
 
 SequentialFallingSand::~SequentialFallingSand()
 {
-    cubeShader->~Shader();
-    geometry->~MeshGeometry();
+    
     DeallocateSpace();
 }
 
@@ -24,7 +23,6 @@ void SequentialFallingSand::InitializeSpace(const unsigned int& size, const bool
         use_size = size_min;
     }
     lightPos = glm::vec3((float)use_size / 2, (float)use_size, (float)use_size);
-    DeallocateSpace();
     CreateSpace(use_size, random);
 }
 
@@ -55,11 +53,14 @@ void SequentialFallingSand::CreateSpace(const int& new_size, const bool& random)
 
 void SequentialFallingSand::DeallocateSpace()
 {
+    cubeShader->~Shader();
+    geometry->~MeshGeometry();
     delete[] space;
 }
 
-void SequentialFallingSand::IterateSpace()
+float SequentialFallingSand::IterateSpace()
 {
+    float cpuStart = (float)glfwGetTime();
     cur_cells = 0;
     for (unsigned int  i = 0; i < size_total; i++) {
         if (space[i] > _EMPTY)
@@ -70,6 +71,8 @@ void SequentialFallingSand::IterateSpace()
     }
     //commit changes
     CommitChanges();
+    float cpuEnd = (float)glfwGetTime();
+    return (cpuEnd - cpuStart) * 1000.0f;
 }
 
 void SequentialFallingSand::IterateThroughSpace()
