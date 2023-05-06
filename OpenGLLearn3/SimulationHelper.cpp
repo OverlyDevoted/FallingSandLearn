@@ -9,13 +9,13 @@ SimulationHelper::~SimulationHelper()
 	delete sand;
 }
 
-void SimulationHelper::InitializeSpace(SandType sim_type, const unsigned int& size, const bool& random)
+std::pair<int, int> SimulationHelper::InitializeSpace(SandType sim_type, const unsigned int& size, const bool& random)
 {
 	if(sim_type == SandType::_PARALLEL_SAND)
 		sand = new ParallelFallingSand();
 	else
 		sand = new SequentialFallingSand();
-	sand->InitializeSpace(size, random);
+	return sand->InitializeSpace(size, random);
 }
 void SimulationHelper::DeallocateSpace()
 {

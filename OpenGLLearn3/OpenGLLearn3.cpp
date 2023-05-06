@@ -23,6 +23,8 @@
 #include <fstream>
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <sys/stat.h>
+#include <fstream>
 
 //my headers
 #include "Shader.h"
@@ -65,7 +67,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 glm::vec3 calc_mouse();
-void export_data();
+void export_data(const int& type, const int& size, const bool& random, float* iterationTimes, const int& iterationCount, const std::pair<int, int>& mem);
+bool fileExists(const std::string& filename);
 #pragma endregion 
 
 #pragma region Falling sand variables
@@ -96,7 +99,6 @@ int main()
     }
     glfwMakeContextCurrent(window);
     
-    //check glad
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         printf("Failed to initialize GLAD");
@@ -121,7 +123,7 @@ int main()
     glfwSetMouseButtonCallback(window, mouse_click_callback);
     srand(time(0));
 
-#pragma region IMGUI
+    #pragma region IMGUI
     //IMGUI setup
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -139,14 +141,13 @@ int main()
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
-#pragma endregion  
-#pragma region Additional Simulation Variables
-    //shader program object setup
+    #pragma endregion  
+    #pragma region Additional Simulation Variables
+
 
     
     simulationWidth = initial_size;
     simulationHeigth = initial_size;
-    // cameraPos.y -= supposedCamPos.y - 1;
     cameraPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     glm::vec3 lightPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     float fps = 0.0f;
@@ -162,23 +163,23 @@ int main()
     int maxIterations = 0; 
 
     float* iterationPlot = new float();
-    
-#pragma endregion
-    //render loop, keeps the program open until we tell it to close
+    std::pair<int, int> mem;
+    #pragma endregion
     while (!glfwWindowShouldClose(window))
     {
         #pragma region Loop time calculations
-        
         float currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         fps = 1.0f / deltaTime;
         fpsCount += fps;
-    #pragma endregion 
+        #pragma endregion 
+
         #pragma region Input listener
         processInput(window);
         mousePos = calc_mouse();
-    #pragma endregion
+        #pragma endregion
+        
         #pragma region Simulation loop
         //clear color buffers
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -195,7 +196,6 @@ int main()
         if(render)
             sand.RenderSpace(view, projection);
         
-        ImGui::Begin("Simulation control");
         if (iterate && iterationCount < maxIterations)
         {
             if (!iteratedOnce)
@@ -203,18 +203,18 @@ int main()
 
             //should return time spend cpu(sequential) or gpu(parallel)
             float time = sand.IterateSpace();
-            
+
             iterationPlot[iterationCount] = time;
-            
+
             iterationCount++;
             if (iterationCount == maxIterations)
-            {
-                
                 iterate = false;
-                //sand.DeallocateSpace();
-            }
         }
+        #pragma endregion 
+
         #pragma region Simulation stat UI render
+        ImGui::Begin("Simulation control");
+        
         ImGui::Text("Camera pos: x:%f y:%f z:%f", cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("yaw: %f pitch: %f", yaw, pitch);
         std::string text = sandType == (int)SandType::_PARALLEL_SAND ? "Parallel" : "Sequential";
@@ -223,12 +223,12 @@ int main()
         if (ImGui::Button("Generate", ImVec2(70, 30)))
         {
             generatedOnce = true;
-            sand.InitializeSpace((SandType)sandType, initial_size, isRandom);
+            mem = sand.InitializeSpace((SandType)sandType, initial_size, isRandom);
         }
         if (generatedOnce)
         {
             ImGui::Checkbox("Renderer", &render);
-            ImGui::InputInt("Iterations", &maxIterations, 1,100);
+            ImGui::InputInt("Iterations", &maxIterations, 1,10);
             if (ImGui::Button("Iterate", ImVec2(70, 30)))
             {
                 if (iterate)
@@ -240,18 +240,26 @@ int main()
                 for (int i = 0; i < maxIterations; i++)
                 {
                     iterationPlot[i] = 0.0f;
-                
                 }
             }
         
-            if (iterationCount == maxIterations)
-                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, IM_COL32(0, 255, 0, 255));
-            ImGui::ProgressBar(iterationCount != 0?((float)(iterationCount + 1) / (float)maxIterations):0.0f);
-            if (iterationCount == maxIterations)
-                ImGui::PopStyleColor();
+
+            
+
 
             if (iteratedOnce)
             {
+                if (iterationCount == maxIterations)
+                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, IM_COL32(0, 255, 0, 255));
+                ImGui::ProgressBar(iterationCount != 0 ? ((float)(iterationCount + 1) / (float)maxIterations) : 0.0f);
+                if (iterationCount == maxIterations)
+                {
+                    ImGui::PopStyleColor();
+                    if (ImGui::Button("Export data"))
+                    {
+                        export_data(sandType, initial_size, isRandom, iterationPlot, maxIterations, mem);
+                    }
+                }
                 if (ImPlot::BeginPlot("Falling Sand performance"))
                 {
                     ImPlot::PlotLine("Iteration time in ms", iterationPlot, maxIterations);
@@ -262,33 +270,24 @@ int main()
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        #pragma endregion 
+        
     #pragma endregion
-        //front buffer contains current screen image, while all other draw functions are performed onto the second buffer which is then swapped with this command after drawing all the geometries
-        //this prevents user from seeing artifacts from drawn geometries at runtime
+
         glfwSwapBuffers(window);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         
         glfwPollEvents();
     }
 
-    printf("\nSIMULATION RESULTS:\n");
-    printf("World size: %d\n", initial_size);
-    printf(isRandom?"Is random: true":"Is random: false");
-    //printf("Cell count at the end %d\n", sand.GetCellCount());
-    //printf("Iterations: %d \n", iterationCount);
-    //printf("Average render time: %f ms\n", renderTime / iterationCount);
-    //printf("Average iteration time: %f ms\n", iterationTime / iterationCount);
-    //printf("Average fps: %f\n\n", fpsCount / iterationCount);
+    printf("\nPROGRAM CLOSED\n");
+    
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
 
-    //good practice is to delete your vao, vbo and shader programs
-    
     glfwDestroyWindow(window);
-    //terminate glfw session
+
     glfwTerminate();
 
     return 0;
@@ -437,4 +436,62 @@ void printGLinfo()
 
     printf("max local (in one shader) work group sizes x:%i y:%i z:%i\n\n",
         work_grp_size[0], work_grp_size[1], work_grp_size[2]);
+}
+bool fileExists(const std::string& filename)
+{
+    struct stat buf;
+    if (stat(filename.c_str(), &buf) != -1)
+    {
+        return true;
+        printf("YEs");
+    }
+    return false;
+}
+void export_data(const int& type, const int& size, const bool& random, float* iterationTimes, const int& iterationCount, const std::pair<int, int>& mem)
+{
+    std::string typeName = type == (int)SandType::_PARALLEL_SAND ? "Parallel" : "Sequential";
+    std::string sizeName = std::to_string(size);
+    std::string randomName = random ? "random" : "";
+    std::string filename = typeName + "_" + sizeName + "_" + randomName;
+    std::string tempFilename = filename;
+    int counter = 0;
+    
+    //total; average
+    while (fileExists(tempFilename))
+    {
+        counter++;
+        tempFilename = filename;
+        tempFilename = tempFilename.append("_" + std::to_string(counter));
+    }
+    tempFilename = tempFilename.append(".txt");
+    tempFilename = tempFilename.insert(0, "src/results/");
+    printf("Writing to %s\n", tempFilename.c_str());
+    std::ofstream file (tempFilename);
+    
+    if (file.is_open())
+    {
+        printf("Successfully created/opened file\n");
+        file << typeName << " " << sizeName << " " << randomName << std::endl << std::endl;
+        file << "Memory in kilobytes:" << std::endl;
+        file << "State and pos: " << mem.first << std::endl;
+        file << "Swaps: " << mem.second << std::endl << std::endl;
+        float total = 0;
+        file << "Total number of iterations: " << iterationCount << std::endl << "Iteration times in ms" << std::endl;
+        for (int i = 0; i < iterationCount; i++)
+        {
+            total += iterationTimes[i];
+            file << i << ", " << iterationTimes[i] << std::endl;
+        }
+        file << "Total: " << total << std::endl;
+        float average = total / iterationCount;
+        file << "Average: " << average << std::endl;
+
+        file.close();
+    }
+    else
+    {
+        printf("Could not open file\n");
+    }
+    if (file.bad())
+        printf("A");
 }

@@ -14,7 +14,7 @@ SequentialFallingSand::~SequentialFallingSand()
     DeallocateSpace();
 }
 
-void SequentialFallingSand::InitializeSpace(const unsigned int& size, const bool& random) 
+std::pair<int, int> SequentialFallingSand::InitializeSpace(const unsigned int& size, const bool& random)
 {
     unsigned int use_size = size;
     if (size < size_min)
@@ -23,10 +23,11 @@ void SequentialFallingSand::InitializeSpace(const unsigned int& size, const bool
         use_size = size_min;
     }
     lightPos = glm::vec3((float)use_size / 2, (float)use_size, (float)use_size);
-    CreateSpace(use_size, random);
+    
+    return CreateSpace(use_size, random);
 }
 
-void SequentialFallingSand::CreateSpace(const int& new_size, const bool& random)
+std::pair<int, int> SequentialFallingSand::CreateSpace(const int& new_size, const bool& random)
 {
     printf("\nGenerating sequential space.");
     starting_cells = 0;
@@ -37,7 +38,7 @@ void SequentialFallingSand::CreateSpace(const int& new_size, const bool& random)
     size_sq = new_size * new_size;
     size_total = size_sq * new_size;
     space = new unsigned char [size_total];
-    printf("\nGenerating %d number of cells.\n", size_total);
+    printf("\nGenerating %d number of cells. Size of container %d\n", size_total * sizeof(unsigned char));
     for (unsigned int i = 0; i < size_total; i++) {
         if (random)
         {
@@ -50,6 +51,7 @@ void SequentialFallingSand::CreateSpace(const int& new_size, const bool& random)
             space[i] = _EMPTY;
         }
     }
+    return std::make_pair(size_total * sizeof(unsigned char), 0);
 }
 
 void SequentialFallingSand::DeallocateSpace()
@@ -142,43 +144,6 @@ void SequentialFallingSand::GetNeighboarhood(unsigned int& index)
             if (rule == 3) // right
             {
                 CheckRight(below, index);
-                continue;
-            }
-        }
-    }
-    else if (space[index] == _WATER)
-    {
-        //printf("water: %d\n", index, space[index]);
-        if (index + size_sq < size_total)
-        {
-            if (CheckBelow(index))
-                return;
-        }
-
-        size_t rand = std::rand() % 4;
-        
-        for (size_t i = 1; i <= 4; i++)
-        {
-            size_t rule = (rand + i) % 4;
-
-            if (rule == 0) // front
-            {
-                CheckFront(index, index);
-                continue;
-            }
-            if (rule == 1) // back (P.S. we don't check zero because check_index will never be zero when checking for sand rules)
-            {
-                CheckBack(index, index);
-                continue;
-            }
-            if (rule == 2) // left
-            {
-                CheckLeft(index, index);
-                continue;
-            }
-            if (rule == 3) // right
-            {
-                CheckRight(index, index);
                 continue;
             }
         }

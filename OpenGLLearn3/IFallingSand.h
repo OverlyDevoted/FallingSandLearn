@@ -1,10 +1,11 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <utility>
 class IFallingSand
 {
 public:
 	virtual ~IFallingSand() {};
-	virtual void InitializeSpace(const unsigned int& size, const bool& random) = 0;
+	virtual std::pair<int, int> InitializeSpace(const unsigned int& size, const bool& random) = 0;
 	virtual float IterateSpace() = 0;
 	virtual unsigned int GetSpaceSize() const { return size; };
 	virtual unsigned int GetStartingCells() const { return starting_cells; };

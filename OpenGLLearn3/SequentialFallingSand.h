@@ -20,7 +20,7 @@ class SequentialFallingSand : public IFallingSand
 public:
 	SequentialFallingSand();
 	~SequentialFallingSand() override;
-	void InitializeSpace(const unsigned int& size, const bool& random) override;
+	std::pair<int, int> InitializeSpace(const unsigned int& size, const bool& random) override;
 	float IterateSpace();
 	void IterateThroughSpace();
 
@@ -39,7 +39,7 @@ private:
 	unsigned int cur_cells = 0;
 	std::vector <std::pair<size_t, size_t>> space_changes;
 
-	void CreateSpace(const int& size, const bool& random);
+	std::pair<int, int> CreateSpace(const int& size, const bool& random);
 	void MakeChange(const size_t& from, const size_t& to);
 	void CommitChanges();
 	size_t ConvertVec3ToIndex(const glm::uvec3& pos);
