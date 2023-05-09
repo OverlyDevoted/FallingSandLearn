@@ -242,10 +242,6 @@ int main()
                     iterationPlot[i] = 0.0f;
                 }
             }
-        
-
-            
-
 
             if (iteratedOnce)
             {
