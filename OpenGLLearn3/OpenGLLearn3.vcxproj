@@ -72,23 +72,23 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\Robert\Documents\Visual Studio 2019\Projects\OpenGL\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Robert\Documents\Visual Studio 2019\Projects\OpenGL\libs;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\OpenGLLearn3\src\vendor\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\OpenGLLearn3\src\vendor\libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\Robert\Documents\Visual Studio 2019\Projects\OpenGL\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Robert\Documents\Visual Studio 2019\Projects\OpenGL\libs;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\OpenGLLearn3\src\vendor\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\OpenGLLearn3\src\vendor\libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\Robert\Documents\Visual Studio 2019\Projects\OpenGL\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Robert\Documents\Visual Studio 2019\Projects\OpenGL\libs;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\OpenGLLearn3\src\vendor\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\OpenGLLearn3\src\vendor\libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\Robert\Documents\Visual Studio 2019\Projects\OpenGL\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Robert\Documents\Visual Studio 2019\Projects\OpenGL\libs;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\OpenGLLearn3\src\vendor\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\OpenGLLearn3\src\vendor\libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -164,14 +164,12 @@
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SimulationHelper.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui.cpp" />
-    <ClCompile Include="src\vendor\imgui\imgui_demo.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_draw.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_impl_glfw.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_tables.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\vendor\imgui\implot.cpp" />
-    <ClCompile Include="src\vendor\imgui\implot_demo.cpp" />
     <ClCompile Include="src\vendor\imgui\implot_items.cpp" />
     <ClCompile Include="Texture.cpp" />
   </ItemGroup>

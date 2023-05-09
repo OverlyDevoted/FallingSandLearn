@@ -1,10 +1,5 @@
-#include "src/vendor/imgui/imgui.h"
-#include "src/vendor/imgui/imgui_impl_glfw.h"
-#include "src/vendor/imgui/imgui_impl_opengl3.h"
-#include "src/vendor/imgui/implot.h"
-#include "src/vendor/imgui/implot_internal.h"
 // OpenGLLearn3.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+
 #include <glad/glad.h>
 //GLFW is a library, written in C, specifically targeted at OpenGL. GLFW gives us the bare necessities required for rendering goodies to the screen. It allows us to create an OpenGL context, define window parameters, and handle user input, which is plenty enough for our purposes. 
 #include <GLFW/glfw3.h>
@@ -26,7 +21,12 @@
 #include <sys/stat.h>
 #include <fstream>
 
-//my headers
+#include "src/vendor/imgui/imgui.h"
+#include "src/vendor/imgui/imgui_impl_glfw.h"
+#include "src/vendor/imgui/imgui_impl_opengl3.h"
+#include "src/vendor/imgui/implot.h"
+#include "src/vendor/imgui/implot_internal.h"
+
 #include "Shader.h"
 #include "Texture.h"
 #include "SequentialFallingSand.h"
