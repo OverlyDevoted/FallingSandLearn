@@ -142,11 +142,11 @@ float ParallelFallingSand::IterateSpace()
     determineShader->setUniform1uint("size", size);
     determineShader->setUniform1uint("size_sq", size_sq);
     determineShader->setUniform1uint("volume", size_total);
-    glDispatchCompute(size_total, 1, 1);
+    glDispatchCompute(size_total/work_group_divisor, 1, 1);
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
     swapShader->use();
-    glDispatchCompute(size_total, 1, 1);
+    glDispatchCompute(size_total/work_group_divisor, 1, 1);
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
     glEndQuery(GL_TIME_ELAPSED);

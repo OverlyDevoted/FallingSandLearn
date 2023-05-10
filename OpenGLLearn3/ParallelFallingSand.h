@@ -21,5 +21,5 @@ private:
 	Shader* renderShader;
 	Shader* determineShader;
 	Shader*  swapShader;
-
+	int work_group_divisor = 1;
 };

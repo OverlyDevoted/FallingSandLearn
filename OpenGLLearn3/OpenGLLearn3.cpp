@@ -79,7 +79,7 @@ int initial_size = 10;
 bool isRandom = true;
 int sandType = (int)SandType::_SEQUENTIAL_SAND;
 bool render = false;
-
+int maxIterations = 50;
 #pragma endregion
 
 int main()
@@ -143,24 +143,16 @@ int main()
     ImGui_ImplOpenGL3_Init("#version 430");
     #pragma endregion  
     #pragma region Additional Simulation Variables
-
-
-    
+ 
     simulationWidth = initial_size;
     simulationHeigth = initial_size;
     cameraPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     glm::vec3 lightPos = glm::vec3((float)initial_size / 2, (float)initial_size, (float)initial_size);
     float fps = 0.0f;
-
-    float iterateStart = 0.0f;
-    float iterateEnd = 0.0f;
-    float iterationTime = 0.0f;
-    bool iterate = false;
-    
     float fpsCount = 0.0;
     
     int iterationCount = 0;
-    int maxIterations = 0; 
+    bool iterate = false;
 
     float* iterationPlot = new float();
     std::pair<int, int> mem;
@@ -435,8 +427,9 @@ void printGLinfo()
 }
 bool fileExists(const std::string& filename)
 {
+    std::string check = filename + ".txt";
     struct stat buf;
-    if (stat(filename.c_str(), &buf) != -1)
+    if (stat(check.c_str(), &buf) != -1)
     {
         return true;
         printf("YEs");
@@ -449,6 +442,7 @@ void export_data(const int& type, const int& size, const bool& random, float* it
     std::string sizeName = std::to_string(size);
     std::string randomName = random ? "random" : "";
     std::string filename = typeName + "_" + sizeName + "_" + randomName;
+    filename = filename.insert(0, "src/results/" + typeName + "/");
     std::string tempFilename = filename;
     int counter = 0;
     
@@ -460,7 +454,6 @@ void export_data(const int& type, const int& size, const bool& random, float* it
         tempFilename = tempFilename.append("_" + std::to_string(counter));
     }
     tempFilename = tempFilename.append(".txt");
-    tempFilename = tempFilename.insert(0, "src/results/");
     printf("Writing to %s\n", tempFilename.c_str());
     std::ofstream file (tempFilename);
     

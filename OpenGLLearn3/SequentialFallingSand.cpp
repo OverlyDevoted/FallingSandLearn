@@ -38,7 +38,7 @@ std::pair<int, int> SequentialFallingSand::CreateSpace(const int& new_size, cons
     size_sq = new_size * new_size;
     size_total = size_sq * new_size;
     space = new unsigned char [size_total];
-    printf("\nGenerating %d number of cells. Size of container %d\n", size_total * sizeof(unsigned char));
+    printf("\nGenerating %d number of cells. Space size in kb: %d\n", size_total, size_total/1000);
     for (unsigned int i = 0; i < size_total; i++) {
         if (random)
         {
@@ -108,7 +108,6 @@ void SequentialFallingSand::IterateThroughSpace()
     } 
 }
 
-
 void SequentialFallingSand::GetNeighboarhood(unsigned int& index)
 {
     //printf("index: %d value: %d\n", index, space[index]);
@@ -121,32 +120,20 @@ void SequentialFallingSand::GetNeighboarhood(unsigned int& index)
         if (CheckBelow(index))
             return;
 
-        size_t rand = std::rand() % 4;
+        
         unsigned int below = index + size_sq;
-        for (size_t i = 1; i <= 4; i++)
-        {
-            size_t rule = (rand + i) % 4;
-            if (rule == 0) // front
-            {
-                CheckFront(below, index);
-                continue;
-            }
-            if (rule == 1) // back (P.S. we don't check zero because check_index will never be zero when checking for sand rules)
-            {
-                CheckBack(below, index);
-                continue;
-            }
-            if (rule == 2) // left
-            {
-                CheckLeft(below, index);
-                continue;
-            }
-            if (rule == 3) // right
-            {
-                CheckRight(below, index);
-                continue;
-            }
-        }
+        
+        if (CheckFront(below, index)) 
+            return;
+            
+        if (CheckBack(below, index)) // (P.S. we don't check zero because check_index will never be zero when checking for sand rules)
+            return;
+            
+        if (CheckLeft(below, index))            
+            return;
+            
+        if (CheckRight(below, index)) 
+            return;
     }
 }
 #pragma region Checks
@@ -162,25 +149,33 @@ bool SequentialFallingSand::CheckBelow(const size_t& index)
     }
     return false;
 }
-void SequentialFallingSand::CheckFront(const size_t& index, const size_t& swap)
+bool SequentialFallingSand::CheckFront(const size_t& index, const size_t& swap)
 {
     if (index % size == size - 1)
-        return;
+        return false;
     size_t check = index + 1;
     if (space[swap] > space[check])
+    {
         MakeChange(swap, check);
+        return true;
+    }
+    return false;
 }
-void SequentialFallingSand::CheckBack(const size_t& index, const size_t& swap)
+bool SequentialFallingSand::CheckBack(const size_t& index, const size_t& swap)
 {
     if (index % size == 0)
-        return;
+        return false;
 
     size_t check = index - 1;
     if (space[index] > space[check])
+    {
         MakeChange(swap, check);
+        return true;
+    }
+    return false;
 }
 
-void SequentialFallingSand::CheckLeft(const size_t& index, const size_t& swap)
+bool SequentialFallingSand::CheckLeft(const size_t& index, const size_t& swap)
 {
     unsigned int left_index = index - size;
     if (index / size_sq == left_index / size_sq)
@@ -188,24 +183,28 @@ void SequentialFallingSand::CheckLeft(const size_t& index, const size_t& swap)
         if (space[index] > space[left_index])
         {
             MakeChange(swap, left_index);
-            return;
+            return true;
         }
+        return false;
     }
+    return false;
 }
-void SequentialFallingSand::CheckRight(const size_t& index, const size_t& swap)
+bool SequentialFallingSand::CheckRight(const size_t& index, const size_t& swap)
 {
     unsigned int right_index = index + size;
     if (right_index >= size_total)
-        return;
+        return false;
 
     if (index / size_sq == right_index / size_sq)
     {
         if (space[index] > space[right_index])
         {
             MakeChange(swap, right_index);
-            return;
+            return true;
         }
+        return false;
     }
+    return false;
 }
 #pragma endregion
 

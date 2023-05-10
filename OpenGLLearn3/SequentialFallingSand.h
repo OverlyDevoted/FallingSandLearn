@@ -45,10 +45,10 @@ private:
 	size_t ConvertVec3ToIndex(const glm::uvec3& pos);
 	glm::uvec3 ConvertIndexToVec3(const size_t& index);
 	bool CheckBelow(const size_t& index);
-	void CheckFront(const size_t& index, const size_t& swap);
-	void CheckBack(const size_t& index, const size_t& swap);
-	void CheckLeft(const size_t& index, const size_t& swap);
-	void CheckRight(const size_t& index, const size_t& swap);
+	bool CheckFront(const size_t& index, const size_t& swap);
+	bool CheckBack(const size_t& index, const size_t& swap);
+	bool CheckLeft(const size_t& index, const size_t& swap);
+	bool CheckRight(const size_t& index, const size_t& swap);
 	//not really for this class, but needed
 	unsigned int ClampInSpace(unsigned int value);
 };
