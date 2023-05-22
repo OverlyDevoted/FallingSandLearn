@@ -13,7 +13,7 @@ layout(std430, binding = 5) buffer Swaps
 {
 	ivec2 swap[];
 };
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in; 
+layout(local_size_x = 512, local_size_y = 1, local_size_z = 1) in; 
 uniform uint size;
 uniform uint size_sq;
 uniform uint volume;

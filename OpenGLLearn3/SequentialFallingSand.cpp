@@ -48,10 +48,13 @@ std::pair<int, int> SequentialFallingSand::CreateSpace(const int& new_size, cons
         }
         else
         {
-            space[i] = _EMPTY;
+            if (i == 26 || i == 25 || i == 24 || i == 23 || i == 21 || i == 20 || i == 19 || i == 18 || i == 10 || i == 16)
+                space[i] = _SAND;
+            else
+                space[i] = _EMPTY;
         }
     }
-    return std::make_pair(size_total * sizeof(unsigned char), 0);
+    return std::make_pair((size_total * sizeof(unsigned char))/1000, 0);
 }
 
 void SequentialFallingSand::DeallocateSpace()

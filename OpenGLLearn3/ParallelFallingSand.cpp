@@ -45,8 +45,7 @@ std::pair<int, int> ParallelFallingSand::InitializeSpace(const unsigned int& siz
         GLint from;
         GLint to;
     };
-    struct pos
-    {
+    struct pos {
         GLfloat x, y, z; // positions
         GLint state;
     };

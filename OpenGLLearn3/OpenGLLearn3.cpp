@@ -75,7 +75,7 @@ bool fileExists(const std::string& filename);
 
 SimulationHelper sand = SimulationHelper();
 
-int initial_size = 10;
+int initial_size = 3;
 bool isRandom = true;
 int sandType = (int)SandType::_SEQUENTIAL_SAND;
 bool render = false;
@@ -460,16 +460,16 @@ void export_data(const int& type, const int& size, const bool& random, float* it
     if (file.is_open())
     {
         printf("Successfully created/opened file\n");
-        file << typeName << " " << sizeName << " " << randomName << std::endl << std::endl;
-        file << "Memory in kilobytes:" << std::endl;
-        file << "State and pos: " << mem.first << std::endl;
-        file << "Swaps: " << mem.second << std::endl << std::endl;
+        //file << typeName << " " << sizeName << " " << randomName << std::endl << std::endl;
+        //file << "Memory in kilobytes:" << std::endl;
+        file << "Pos: " << mem.first << std::endl;
+        file << "Swaps: " << mem.second << std::endl;
         float total = 0;
-        file << "Total number of iterations: " << iterationCount << std::endl << "Iteration times in ms" << std::endl;
+        //file << "Total number of iterations: " << iterationCount << std::endl << "Iteration times in ms" << std::endl;
         for (int i = 0; i < iterationCount; i++)
         {
             total += iterationTimes[i];
-            file << i << ", " << iterationTimes[i] << std::endl;
+            file << i << ": " << iterationTimes[i] << std::endl;
         }
         file << "Total: " << total << std::endl;
         float average = total / iterationCount;
