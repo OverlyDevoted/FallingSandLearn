@@ -17,5 +17,7 @@
 	- Iš "src" aplankalo ištriname "vendor" aplankalą
 	- Pasileidžiame failą OpenGLLearn3.exe
 
+
 [Parodomasis video](https://www.youtube.com/watch?v=VipiV5QAbz8)
+
 [Originali repozitorija](https://github.com/OverlyDevoted/FallingSandLearn)
