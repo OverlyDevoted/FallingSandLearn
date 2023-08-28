@@ -16,5 +16,6 @@
 	- Nukopijuojame direktorijoje "Projekto direktorija"/OpenGLLearn3/ esantį aplankalą "src" į aplankalą, kuriame yra sukompiliuota programa
 	- Iš "src" aplankalo ištriname "vendor" aplankalą
 	- Pasileidžiame failą OpenGLLearn3.exe
-	[Parodomasis video](https://www.youtube.com/watch?v=VipiV5QAbz8)
-	[Originali repozitorija](https://github.com/OverlyDevoted/FallingSandLearn)
+
+[Parodomasis video](https://www.youtube.com/watch?v=VipiV5QAbz8)
+[Originali repozitorija](https://github.com/OverlyDevoted/FallingSandLearn)
